@@ -169,11 +169,11 @@ end
 % load rp.
 %rp = load(c_b(opt.DATA.RP{g,j}(k,:)));
 rp = load(c_b(opt.DATA.RP_1D{g,j,k}));
-%------------------ Volume selector, rp----------------------
-if opt.AUX.v_s_do  
-    rp(indx,:) = [];
-end
-%------------------------------------------------------------
+% %------------------ Volume selector, rp----------------------
+% if opt.AUX.v_s_do  
+%     rp(indx,:) = [];
+% end
+% %------------------------------------------------------------
 nrp = size(rp,2);
 %there is a problem, spm put first traslation, fsl rotations. Now I try to
 %guess what type is it considering that traslation should be aroud 50 times

@@ -3717,7 +3717,8 @@ global opt
 % end
 
 if opt.aCompCor.do || opt.rp_regression.do
-    rp_str = [' -ort ',opt.X1D{g,j,k},opt.AUX.v_s_rp_str{g,j}]; 
+    %rp_str = [' -ort ',opt.X1D{g,j,k},opt.AUX.v_s_rp_str{g,j}]; 
+    rp_str = [' -ort ',opt.X1D{g,j,k}]; 
 else
     rp_str = '';
 end
@@ -3789,7 +3790,8 @@ global opt
 % end
 
 if opt.aCompCor.do || opt.rp_regression.do
-    rp_str = [' -ort ',opt.X1D{g,j,k},opt.AUX.v_s_rp_str{g,j}]; 
+    %rp_str = [' -ort ',opt.X1D{g,j,k},opt.AUX.v_s_rp_str{g,j}]; 
+    rp_str = [' -ort ',opt.X1D{g,j,k}]; 
 else
     rp_str = '';
 end
@@ -3829,7 +3831,7 @@ if opt.psc
     if str2num(string) ~= opt.tr{g,j}
         [status,string] = system(['3drefit -TR ',num2str(opt.tr{g,j}),' ',opt.AUX.output_name{g,j,k},'_psc.nii']);control(status,string);  
     end
-    [status,string] = system(['3dTproject -input ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:)),'_psc.nii',opt.AUX.v_s_str{g,j},' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -passband ',num2str(opt.filter_band(1)),' ',num2str(opt.filter_band(2)),' -dt ',num2str(opt.tr{g,j}),rp_str,opt.tredrsfc_extraoption,' ',bmask_string,' -polort 2 -censor ',opt.censoring.censor1D{g,j,k},opt.AUX.v_s_rp_str{g,j},' -cenmode ',opt.censoring.mode]);control(status,string);
+    [status,string] = system(['3dTproject -input ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:)),'_psc.nii',opt.AUX.v_s_str{g,j},' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -passband ',num2str(opt.filter_band(1)),' ',num2str(opt.filter_band(2)),' -dt ',num2str(opt.tr{g,j}),rp_str,opt.tredrsfc_extraoption,' ',bmask_string,' -polort 2 -censor ',opt.censoring.censor1D{g,j,k},' -cenmode ',opt.censoring.mode]);control(status,string);
     opt.censoring.DOF{g,j}(k,1) = parse_3dTproject(string);
     if ~opt.AUX.psc_save
         [status,string] = system(['rm ',opt.AUX.output_name{g,j,k},'_psc.nii']);control(status,string); 
@@ -3839,7 +3841,7 @@ else
     if str2num(string) ~= opt.tr{g,j}
         [status,string] = system(['3drefit -TR ',num2str(opt.tr{g,j}),' ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:))]);control(status,string);
     end
-    [status,string] = system(['3dTproject -input ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:)),opt.AUX.v_s_str{g,j},' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -passband ',num2str(opt.filter_band(1)),' ',num2str(opt.filter_band(2)),' -dt ',num2str(opt.tr{g,j}),rp_str,opt.tredrsfc_extraoption,' ',bmask_string,' -polort 2 -censor ',opt.censoring.censor1D{g,j,k},opt.AUX.v_s_rp_str{g,j},' -cenmode ',opt.censoring.mode]);control(status,string);
+    [status,string] = system(['3dTproject -input ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:)),opt.AUX.v_s_str{g,j},' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -passband ',num2str(opt.filter_band(1)),' ',num2str(opt.filter_band(2)),' -dt ',num2str(opt.tr{g,j}),rp_str,opt.tredrsfc_extraoption,' ',bmask_string,' -polort 2 -censor ',opt.censoring.censor1D{g,j,k},' -cenmode ',opt.censoring.mode]);control(status,string);
     opt.censoring.DOF{g,j}(k,1) = parse_3dTproject(string);
 end
 return
@@ -4600,9 +4602,10 @@ for r = 1:opt.aCompCor.masknumb
     Xall = [Xall,X];
 end
 opt.aCompCor.X{g,j,k} = Xall;
-Xall_afni = zeros(Norig,size(Xall,2));  %now I need to restore the original shape for afni (the cutting of volume is made by it).
-Xall_afni(~indx,:) = Xall;
-save('_temp.txt','Xall_afni','-ascii');
+% Xall_afni = zeros(Norig,size(Xall,2));  %now I need to restore the original shape for afni (the cutting of volume is made by it).
+% Xall_afni(~indx,:) = Xall;
+%save('_temp.txt','Xall_afni','-ascii');
+save('_temp.txt','Xall','-ascii');
 str_out = ['_aCompCor_',opt.AUX.output_name{g,j,k},'_regressors.1D'];
 [~,~] = system(['1dcat _temp.txt > ',str_out]);
 % if opt.rp_regression.do
@@ -4621,6 +4624,7 @@ end
 function rp_initialization(g,j,k)
 % it creates 1D files, computes derivative if required, computes FDpower.
 % TODO: add FDafni (maybe not worthed, it is just a different norm (L1 vs L2) 
+% FD is computed on cut data
 global opt
 rp_path = c_b(opt.DATA.RP{g,j}(k,:));
 rp = load(rp_path);
@@ -4634,24 +4638,27 @@ else
     end
 end
 %--------------------------------------------------
+% compute FD (I don't need derivatives for this)
+compute_FD(rp,g,j,k); %group, session, subj
+%--------------------------------------------------
+
 output_name = ['_rp_',opt.AUX.output_name{g,j,k},'.1D'];
-if 0 %test the effect of detrending
-    rp = detrend(rp);
-    save('_temp.txt','rp','-ascii');
-    [~,~] = system(['1dcat _temp.txt > ',output_name,'.1D']);
-    system('rm _temp.txt');
-else
-    [~,~] = system(['1dcat ',rp_path,' > ',output_name]);
-end
+% if 0 %test the effect of detrending
+%     rp = detrend(rp);
+%     save('_temp.txt','rp','-ascii');
+%     [~,~] = system(['1dcat _temp.txt > ',output_name,'.1D']);
+%     system('rm _temp.txt');
+% end
 if opt.rp_regression.derivate && rp_s == 6   % derivative
-    [status,string] = system(['1d_tool.py -infile ',output_name,' -set_nruns 1 -derivative -write _temp.1D']); control(status,string);
-    [~,~] = system(['rm ',output_name]);        %Silly procedure...
-    [~,~] = system(['1dcat ',rp_path,' _temp.1D > ',output_name]);
+    [status,string] = system(['1d_tool.py -infile ',rp_path,' -set_nruns 1 -derivative -write _temp.1D']); control(status,string);
+    [~,~] = system(['1dcat ',rp_path,opt.AUX.v_s_rp_str{g,j},' _temp.1D',opt.AUX.v_s_rp_str{g,j},' > ',output_name]);
     [~,~] = system('rm _temp.1D');
+else
+    [~,~] = system(['1dcat ',rp_path,opt.AUX.v_s_rp_str{g,j},' > ',output_name]);
 end
 % save path
 opt.DATA.RP_1D{g,j,k} = [opt.folders.preprocessing,'/',output_name];
-compute_FD(g,j,k); %group, session, subj
+
 
 return
 end
@@ -4659,18 +4666,19 @@ end
 
 function censoring_initialization(g,j,k)
 global opt
+% FD is computed on cut data (in case of volume selector). The censoring
+% file has the lenght of cut data (both in opt and in 1D file)
 tmask = er_censoring_mask(opt.QC.FD{g,j,k},opt.censoring.value,opt.censoring.pre_TR,opt.censoring.post_TR);
+% save info and vector in opt:
+opt.censoring.censor{g,j,k} = tmask;
+n_cen = sum(not(tmask));
+opt.censoring.censor_number{g,j}(k,1) = n_cen;
+% save on .1D for 3dTproject
 cen_name = ['_censoring_',opt.AUX.output_name{g,j,k},'_censor.1D'];
+opt.censoring.censor1D{g,j,k} = [opt.folders.preprocessing,'/',cen_name];
 dlmwrite(cen_name,tmask);
 %[~,~] = system(['1dcat _temp.txt > ',cen_name]);
 %[~,~] = system('rm _temp.txt');
-opt.censoring.censor{g,j,k} = tmask;
-if opt.AUX.v_s_do %the real volume cut is done in do_3dTproject
-    tmask = tmask(opt.AUX.v_s_matlab{g,j}(1):opt.AUX.v_s_matlab{g,j}(2));
-end
-n_cen = sum(not(tmask));
-opt.censoring.censor1D{g,j,k} = [opt.folders.preprocessing,'/',cen_name];
-opt.censoring.censor_number{g,j}(k,1) = n_cen;
 return
 end
 
