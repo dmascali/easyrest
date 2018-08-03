@@ -18,6 +18,7 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % Property list (details below):
 %         "ynan"     = "skip" / "remove" (default skip)
 %         "constant" = "on"   / "off"    (default on)
+%         "rmvobs"  = [4 6 34]          (default [])
 %         "tail"     = "both" / "single" (default both)
 %         "zscore"   = "on"   / "off"    (default off)
 %         "r2t"      = "on"   / "off"    (default off)
@@ -38,6 +39,9 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % the "zscore" option is turned on). You can disalbe the constant term via
 % the property "constant"
 %         "constant" = "on"/"off" (default on) Add a constant term to X.
+%
+% "rmvobs" is a vector of integer values that specifies observations that 
+% you want to remove from the model. (default [])   
 %
 % Two-tails p-value are output by default. To swich to single tail test use
 % the property "tail"
@@ -76,8 +80,8 @@ if nargin == 0
 end
 
 %--------------VARARGIN----------------------
-params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot'};
-defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on'};
+params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot','rmvobs'};
+defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on',      []};
 legalValues{1} = {'both','single'};
 legalValues{2} = {'on','off'};
 legalValues{3} = {'on','off'};
@@ -87,7 +91,8 @@ legalValues{6} = {'on','off'};
 legalValues{7} = {'on','off'};
 legalValues{8} = {'on','off'};
 legalValues{9} = {'on','off'};
-[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot] = parse_varargin(params,defParms,legalValues,varargin);
+legalValues{10} = [];
+[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs] = parse_varargin(params,defParms,legalValues,varargin);
 %---convert chars to logical variables-----
 zscore_flag = char2logical(zscore_flag);
 zStat_flag = char2logical(zStat_flag);
@@ -105,6 +110,13 @@ n_dimension = length(siz);
 if n_dimension > 2
     Y = reshape(Y,[n, prod(siz(2:end))]);
 end
+
+%remove observations if desired
+if ~isempty(rmvobs)
+    Y(rmvobs,:) = [];
+    X(rmvobs,:) = [];
+    n = size(Y,1);
+end 
 
 warning off backtrace;
 % check for NaNs in X
