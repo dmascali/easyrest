@@ -22,10 +22,16 @@ function [res,des_info,X] = er_rs_cleaning(Y,concat_index,TR,polort,pass_band,or
 % info).
 
 
-params  = {'cenmode'};
-defparms = {'zero'};
+
+
+params  = {'cenmode','ortdemean'}; %NB: In case of multiple sessions with one separate set of ort for each
+                                        %session, deaming all X or separately each ort session is the same. 
+                                        % So, ortdemean should be always
+                                        % set to 1
+defparms = {'zero', 1};
 legalvalues{1} = {'zero','kill'};
-[cenmode] = parse_varargin(params,defparms,legalvalues,varargin);
+legalvalues{2} = [0 1];
+[cenmode,ortdemean] = parse_varargin(params,defparms,legalvalues,varargin);
 
 
 if polort == -1
@@ -83,7 +89,9 @@ if ~isempty(ort)
         error('ort regressors don''t have the correct size');
     end
     %demean ort
-    ort = ort -mean(ort,1);
+    if ortdemean
+        ort = ort -mean(ort,1);
+    end
     M_ort = size(ort,2);
     X = [X,ort];
 else
