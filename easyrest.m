@@ -4522,6 +4522,8 @@ function acompcor(g,k,j)  %g group, k subj, j session
 %differences are also present in CONN toolbox (see related papeper). 1) PCA is
 %done separately in different noise ROIs (eg WM and CSF, Originally was a
 %unique roi). 2) Before PCA data is orhogolized respect to head movements.
+
+%TODO: 1) move rp regression out of the loop 2) extract roi witout loop
 global opt
 data = spm_read_vols(spm_vol(c_b(opt.DATA.FUNCTIONALS{g,j}(k,:))));
 % Volume selector
@@ -4541,7 +4543,7 @@ for r = 1:opt.aCompCor.masknumb
     end
     % removal of costant and linear trend
     V = detrend(V);
-    % lets remove voxels whose variace is equal zero (no signal in those voxels)
+    % lets remove voxels whose variance is equal zero (no signal in those voxels)
     % and Nan values
     stdv = std(V);
     a = zeros(1,length(stdv));
@@ -4552,11 +4554,10 @@ for r = 1:opt.aCompCor.masknumb
                           % In this way the model is maximally predictive. 
         if opt.aCompCor.rpOrtogonalize
             %load regressor
-            %rp = load(c_b(opt.DATA.RP_1D{g,j}(k,:)));
             rp = load(c_b(opt.DATA.RP_1D{g,j,k}));
-            if opt.AUX.v_s_do  
-                rp(indx,:) = [];
-            end
+%             if opt.AUX.v_s_do  
+%                 rp(indx,:) = [];
+%             end
             X = detrend(rp);
             res = V-X*(X\V);
             V = res;
