@@ -215,8 +215,10 @@ fd_TRnorm = fd./opt.tr{g,j};  %lets consider also a normalized version of FD
 %Pay attention: since the reference volume is arbitrary we can remove the
 %mean from the rp before calculating abs and rms. However, the choice of the ref
 %may change the results. 
+% NEW: % let's subtract the value at time 0, so in case the ref volume is not the
+% first one the position still refers to the first scan. 
 rp_mm = [tra,rot_mm];
-rp_mm_dm = bsxfun(@minus, rp_mm, mean(rp_mm));
+rp_mm_dm = bsxfun(@minus, rp_mm, rp_mm(1,:));
 tra_abs = sum(abs(rp_mm_dm(:,1:3)),2);
 rot_abs = sum(abs(rp_mm_dm(:,4:6)),2);
 rms_ = rms(rp_mm_dm);
