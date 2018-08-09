@@ -90,10 +90,12 @@ ER.others.rp_type = 'FSL';                      % {'FSL','SPM','AFNI','HCP'}. Sp
 ER.others.aCompCor.do = 1;                      % aCompCor method for noise mitigation.It requieres tissue probability maps
                                                 % NOTE: aCompCor will perform better on UNsmoothed data. So pass data not smoothed and
                                                 % smooth them afterwards
-ER.others.aCompCor.rpOrtogonalize = 1;          % extract PCA/mean over data already ortogonalized to rp.
-                                                % In this way the model is maximally predictive.                                                
-                                                
-    %Optimized aCompCor parameters, you should not change them
+ %Optimized aCompCor parameters, you should not change them
+ER.others.aCompCor.rpOrtogonalize = 1;          % [def = 1] extract PCA/mean over data already ortogonalized to rp.
+                                                %           In this way the model is maximally predictive.                                                
+ER.others.aCompCor.asCONN = 0;                  % [def = 0] CONN extracts PCA over mean regressed data, and the first component is equal to straight average. 
+ER.others.aCompCor.TvarianceNormalise = 1;      % [def = 1] whether or not to varaince normalize the data before running PCA ( Bezhadi = 1, CONN = 0);
+    
 ER.others.aCompCor.ROI(1).tissue = 2;           % 1=GM, 2=WM, 3=CSF, 4=GSR (Global Signal Regression)
 ER.others.aCompCor.ROI(1).dime = 5;             % Number of PCA components. 0 for straight average.
 ER.others.aCompCor.ROI(1).deri = 0;             % 0/n>1. Regress also the first n derivates. O: no derivatives 
@@ -1658,6 +1660,12 @@ if ot.aCompCor.do == 1 && ~isfield(ot.aCompCor,'ROI')
 end
 if ot.aCompCor.do == 1 && ~isfield(ot.aCompCor,'rpOrtogonalize')
     ER.others.aCompCor.rpOrtogonalize = 1;
+end
+if ot.aCompCor.do == 1 && ~isfield(ot.aCompCor,'asCONN')
+    ER.others.aCompCor.asCONN = 0;
+end
+if ot.aCompCor.do == 1 && ~isfield(ot.aCompCor,'TvarianceNormalise')
+    ER.others.aCompCor.TvarianceNormalise = 0;
 end
 if ~isfield(ot,'censoring');                ot.censoring.do = 0;end
 if ~isfield(ot,'FWHM');                     ot.FWHM = 0; end
@@ -4550,6 +4558,12 @@ for r = 1:opt.aCompCor.masknumb
     a(stdv == 0) = 1;
     a(isnan(stdv)) = 1;
     V(:,logical(a)) = [];
+    %------------------Orthogonalize V-------------------------------------
+    COV = [];
+    if opt.aCompCor.asCONN %CONN first extract the mean signal (mS), then compute PCA over mS regressed out
+        mS = detrend(mean(V,2));
+        COV = [COV,mS];
+    end
     if opt.rp_regression.do  % extract PCA over data already ortogonalized to rp.
                           % In this way the model is maximally predictive. 
         if opt.aCompCor.rpOrtogonalize
@@ -4558,29 +4572,33 @@ for r = 1:opt.aCompCor.masknumb
 %             if opt.AUX.v_s_do  
 %                 rp(indx,:) = [];
 %             end
-            X = detrend(rp);
-            res = V-X*(X\V);
-            V = res;
+            COV = [COV,detrend(rp)];
         end
     end
+    if ~isempty(COV)
+        V = V-COV*(COV\V);
+    end
+    %----------------------------------------------------------------------
     if opt.aCompCor.ROI(r).dime > 0
-        %tvariance normalization
-        V = bsxfun(@rdivide,V,std(V));
+        if opt.aCompCor.TvarianceNormalise
+            %tvariance normalization
+            V = bsxfun(@rdivide,V,std(V));
+        end
         if 0 %same results   
-            [~,U,~] =  pca(V);
+            [~,U,~] = pca(V);
             comp = U(:,1:opt.aCompCor.ROI(r).dime);
         else
-            
-            [U,~,~] = svd(V);
-            
-            comp = U(:,1:opt.aCompCor.ROI(r).dime);
+%           [U,~,~] = svd(V);
+%           comp = U(:,1:opt.aCompCor.ROI(r).dime);
+            %weight each component (doesn't change the correlation
+            %structure)
+            [U,P] = svd(V);
+            if opt.aCompCor.asCONN %add the mean signal and remove one dimension
+                comp = [mS,U(:,1:opt.aCompCor.ROI(r).dime-1)*diag(sqrt(diag(P(1:opt.aCompCor.ROI(r).dime-1,1:opt.aCompCor.ROI(r).dime-1))))];           
+            else
+                comp = U(:,1:opt.aCompCor.ROI(r).dime)*diag(sqrt(diag(P(1:opt.aCompCor.ROI(r).dime,1:opt.aCompCor.ROI(r).dime))));           
+            end
         end
-        %----- CONN uses the mean as first component
-        if 0  % I would leave it disabled to follow exactly acompcor paper
-            c1 = mean(V,2);
-            comp = [c1,comp(:,1:end-1)];
-        end
-        %------------------------------------------
     else  %if dime == 0 simply compute the straight average
         comp = mean(V,2);
     end
