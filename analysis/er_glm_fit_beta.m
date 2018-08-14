@@ -92,16 +92,16 @@ legalValues{7} = {'on','off'};
 legalValues{8} = {'on','off'};
 legalValues{9} = {'on','off'};
 legalValues{10} = [];
-[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs] = parse_varargin(params,defParms,legalValues,varargin);
-%---convert chars to logical variables-----
-zscore_flag = char2logical(zscore_flag);
-zStat_flag = char2logical(zStat_flag);
-r2t = char2logical(r2t);
-constant = char2logical(constant);
-fdr = char2logical(fdr);
-PermMode = char2logical(PermMode);
-showplot = char2logical(showplot);
-%------------------------------------------
+[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs] = parse_varargin(params,defParms,legalValues,varargin,1);
+% %---convert chars to logical variables-----
+% zscore_flag = char2logical(zscore_flag);
+% zStat_flag = char2logical(zStat_flag);
+% r2t = char2logical(r2t);
+% constant = char2logical(constant);
+% fdr = char2logical(fdr);
+% PermMode = char2logical(PermMode);
+% showplot = char2logical(showplot);
+% %------------------------------------------
 
 siz = size(Y);
 n = siz(1);

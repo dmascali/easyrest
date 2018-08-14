@@ -4584,19 +4584,39 @@ for r = 1:opt.aCompCor.masknumb
             %tvariance normalization
             V = bsxfun(@rdivide,V,std(V));
         end
-        if 0 %same results   
+        if 0 %same results   verified (2018)
             [~,U,~] = pca(V);
             comp = U(:,1:opt.aCompCor.ROI(r).dime);
-        else
+         else
 %           [U,~,~] = svd(V);
 %           comp = U(:,1:opt.aCompCor.ROI(r).dime);
             %weight each component (doesn't change the correlation
             %structure)
+            %-------A bit of math--------------------------------------------------------------------------------
+            % The principal components T of a matrix A are obtained by projecting A on the space
+            % of the eigenvectors of the convariance matrix A'A, that we call V (also known as principal axes). 
+            % T = AV
+            % A can be written is SVD as
+            % A = USV' where U are eigenvectors of AA'
+            %                V are eigenvectors of A'A
+            % Thus, 
+            % T = USV'V = US
+            % If we take the svd 
+            % A'A = VS^2V'
+            % AA' = US^2U
+            % Thus, these are equivalent:
+            %          [U1,U2] = svd((V*V'));
+            %          comp1 = [mV,U1(:,1:4)*diag(sqrt(diag(U2(1:4,1:4))))];
+            %          [U1,U2] = svd(V);
+            %          comp2 = [mV,U1(:,1:4)*diag(diag(U2(1:4,1:4)))];
+            %          [coeff score latent] = pca(V);        
+            %          comp2 = [mV,score(:,1:4)];
+            %----------------------------------------------------------------------------------------------------
             [U,P] = svd(V);
             if opt.aCompCor.asCONN %add the mean signal and remove one dimension
-                comp = [mS,U(:,1:opt.aCompCor.ROI(r).dime-1)*diag(sqrt(diag(P(1:opt.aCompCor.ROI(r).dime-1,1:opt.aCompCor.ROI(r).dime-1))))];           
+                comp = [mS,U(:,1:opt.aCompCor.ROI(r).dime-1)*diag(diag(P(1:opt.aCompCor.ROI(r).dime-1,1:opt.aCompCor.ROI(r).dime-1)))];           
             else
-                comp = U(:,1:opt.aCompCor.ROI(r).dime)*diag(sqrt(diag(P(1:opt.aCompCor.ROI(r).dime,1:opt.aCompCor.ROI(r).dime))));           
+                comp = U(:,1:opt.aCompCor.ROI(r).dime)*diag(diag(P(1:opt.aCompCor.ROI(r).dime,1:opt.aCompCor.ROI(r).dime)));           
             end
         end
     else  %if dime == 0 simply compute the straight average
@@ -4612,6 +4632,8 @@ for r = 1:opt.aCompCor.masknumb
         d = [];
     end
     X = [comp,d];
+    % variance normalize the extracted componets
+    X = X./std(X,0,1);
     if 0 % add a costant regressor. 
         %There is no need to add a costant term. 
         %EPI time series is detrended before regression by 3drsfc
