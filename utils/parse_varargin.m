@@ -1,13 +1,18 @@
-function varargout = parse_varargin(params,defparams,legalvalues,var_arg)
-%PARSE_VARARGIN(PARAMS,DEFPARAMS,LEGALPARAMS,VAR_ARG)
-%parses VAR_ARG and returns a variable number of outputs (equal to
-%the number of PARAMS) with the specified or default values (DEFPARMS).
+function varargout = parse_varargin(params,defparams,legalvalues,var_arg,char2logic)
+%PARSE_VARARGIN(PARAMS,DEFPARAMS,LEGALPARAMS,VAR_ARG)parses VAR_ARG and 
+% returns a variable number of outputs (equal to the number of PARAMS) with
+% the specified or default values (DEFPARMS).
+% VAR_ARG must be constructed so that each property name is followed by its 
+% property value (ie:,'param1',value1,'param2',value2).
 %
 %Performs several checks: 1) returns error if property names are not valid 
-%(ie, are not among PARAMS). 2) [optinal] checks validity of property values
-%(requires LEGALVALUES). 
+% (ie, are not among PARAMS). 2) [optinal] checks validity of property values
+% (requires LEGALVALUES). 
+% LEGALVALUES can be empty (no check #2). For integer LEGALVALUES do not
+% provide them as cell (see example). 
 %
-%LEGALVALUES can be empty (no check #2)
+%If CHAR2LOGIC is provided (and ~= 0), the function performs automatic convertion of 
+% chars to logical in case of: 'on',true','go' -> 1; 'off','false','stop' -> 0.
 %
 %Usage example:
 %
@@ -23,12 +28,25 @@ function varargout = parse_varargin(params,defparams,legalvalues,var_arg)
 %   [tail,zscore_flag,delta] = parse_varargin(params,defparms,legalvalues,varargin)
 %__________________________________________________________________________
 %
-%   Version 1.0
-%   Copyright (C) 2018   danielemascali@gmail.com
+% Author:
+%   Daniele Mascali
+%   Enrico Fermi Center, MARBILab, Rome
+%   danielemascali@gmail.com
+
 
 if nargin == 0
     help parse_varargin
     return
+end
+
+if nargin < 5
+    char2logic = 0;
+else
+    if char2logic  % Automatic convertion of the following strings to logical values
+        char2logical_true  = {'on','true','go'}; %these values will be converted to logical 1
+        char2logical_false = {'off','false','stop'}; %these values will be converted to logical 0
+        tobeconverted = [char2logical_true,char2logical_false];
+    end
 end
 
 n_params = length(params);
@@ -72,11 +90,35 @@ for l = 1:n_params
             end
         end
         %-------------------------------------------------
-        varargout{l} = var_arg{inputExist+1};
-    else
-        varargout{l} = defparams{l};
+        %input exists and is valid
+        if char2logic && sum(strcmpi(tobeconverted,var_arg{inputExist+1})) %convert to logical if appropriate
+            varargout{l} = char2logical(var_arg{inputExist+1},char2logical_true,char2logical_false);
+        else
+            varargout{l} = var_arg{inputExist+1};
+        end
+    else %assign default value
+        if char2logic && sum(strcmpi(tobeconverted,defparams{l})) %convert to logical if appropriate
+            varargout{l} = char2logical(defparams{l},char2logical_true,char2logical_false);
+        else        
+            varargout{l} = defparams{l};
+        end
+
     end
 end
 
 return
 end
+
+
+function out = char2logical(inp,truecase,falsecase)
+%convert char varargin to logical
+switch inp
+    case truecase
+        out = 1;
+    case falsecase
+        out = 0;
+end
+out = logical(out);
+return
+end
+
