@@ -4,20 +4,20 @@ function X = er_acompcor(data,rois,dime,confounds,varargin)
 %  signal will be extracted, if DIME > 0 the first n=DIME principal components
 %  will be extracted (following the aCompCor approach).
 % -DATA can be a matrix or a path to a nifti file, if DATA is a matrix, the 
-%  first dimension must be time. 
+%  last dimension must be time. 
 % -ROIS is a cell array containg either matrices or paths to nifti files.
 %  ROIS must be binary.
 %
-%ER_ACOMPCOR(DATA,ROIS,DIME,CONFOUNDS) if a matrix of confounds variable is
-% provided, these will be regressed out of data before extracting  any signal. 
+%ER_ACOMPCOR(DATA,ROIS,DIME,CONFOUNDS) If a matrix of confound variables is
+% provided, these will be regressed out of data before extracting any signal. 
 %
 %Additional options can be specified using the following parameters (each 
 % parameter must be followed by its value ie,'param1',value1,'param2',value2):
 %
 %   'firstmean' :   ['on'/'off'] If 'on', the first extracted component is 
-%                   the mean signal, then the PCA is performed on data 
+%                   the mean signal, then PCA is performed on data 
 %                   ortogonalised to the mean signal {default='off'}
-%   'deirvatives' : is a vector of roi length that specifies the degree of
+%   'derivatives' : is a vector of roi length that specifies the degree of
 %                   derivatives to be computed on the extracted singals
 %                   {default=[],which is the same as zeros(1,length(rois))
 %   'TvarNormalise':['on'/'off'], if set to 'on' the data is normalised by
@@ -29,11 +29,10 @@ function X = er_acompcor(data,rois,dime,confounds,varargin)
 % see aCompCor paper for details: neuroimage 37(2007) 90-101
 %__________________________________________________________________________
 % First version: 2016        at CMRR
-%                August 2018 at MARBILab
+% Last update  : August 2018 at MARBILab
 % Author:
 %   Daniele Mascali
 %   Enrico Fermi Center, MARBILab, Rome
-%   August, 2018
 %   danielemascali@gmail.com
 
 
@@ -45,15 +44,11 @@ end
 params  =  {'firstmean','derivatives','TvarNormalise','DataCleared'};
 defParms = {      'off',           [],          'off',      'false'};
 legalValues{1} = {'on','off'};
-legalValues{2} = {[]};
+legalValues{2} = [];
 legalValues{3} = {'on','off'};
 legalValues{4} = {'true','false'};
-[firstmean,deri,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin);
-%---convert chars to logical variables-----
-firstmean     = char2logical(firstmean);
-TvarNormalise = char2logical(TvarNormalise);
-DataCleared   = char2logical(DataCleared);
-%--------------------------------------------
+[firstmean,deri,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin,1);
+% --------------------------------------------
 
 if ~iscell(rois)
     error('Please provide rois as cell, i.e., rois = {''path1'',''path2.nii''} or rois = {matrix1,matrix2}');
@@ -79,14 +74,21 @@ if ischar(data)  %in case data is a path to a nifti file
     s = size(data);
     data = reshape(data,[s(1)*s(2)*s(3),s(4)])';
 else
-    % In this case the first dimension must be time!
+    % In this case the last dimension must be time!
     s = size(data);
-    n_dimension = length(siz);
+    n_dimension = length(s);
     if n_dimension > 2
-        data = reshape(data,[s(1), prod(s(2:end))]);
+        data = reshape(data,[prod(s(1:end-1)),s(end)])';
+    else
+        data = data';
     end
 end
+%NB: data must be provided with the last dimension as time, but at the end
+%data will reshaped with the first dimension as time (this allows easy
+%handling of preloaded data)
 %--------------------------------------------------------------------------
+
+X = []; %output variable
 
 for r = 1:n_rois
     %----------------------------------------------------------------------
@@ -98,18 +100,18 @@ for r = 1:n_rois
         if ~logical(sr == s(1:3))
             error(sprintf('ROI %d does not have the same dimension of data',r));
         end
-        ROI = reshape(ROI,s(1)*s(2)*s(3));
+        ROI = reshape(ROI,[1,sr(1)*sr(2)*sr(3)]);
     else
         ROI = rois{r};
         sr = size(ROI);
         if length(sr) > 2  %it's a 3d volume
-            if ~isequal(s(2:end),sr) 
+            if ~isequal(s(1:end-1),sr) 
                 error(sprintf('ROI %d does not have the same dimension of data',r));
             end
             % ok, reshape
-            ROI = reshape(ROI,s(1)*s(2)*s(3));
+            ROI = reshape(ROI,[1,sr(1)*sr(2)*sr(3)]);
         elseif isvector(ROI)  %in this case the data is assumed to be 2D
-            if numel(ROI)~= s(2)
+            if numel(ROI)~= s(1)
                 error(sprintf('ROI %d does not have the same dimension of data',r));
             end
             % no need to reshape
@@ -121,7 +123,7 @@ for r = 1:n_rois
     %--------------------------------
     %check if ROI is binary
     un = unique(ROI(:));
-    if length(un) > 2 || ~logical(un == [0 1])
+    if length(un) > 2 || ~isequal(uint8(un),[0;1])
         error(sprintf('ROI %d is not binary',r));
     end
     %--------------------------------
@@ -143,13 +145,14 @@ for r = 1:n_rois
     %------------------Orthogonalise V-------------------------------------
     COV = [];
     if firstmean % as done in CONN: first extract the mean signal (mS), then compute PCA over data ortogonalised to mS
-        mS = detrend(mean(V,2));
+        mS = mean(V,2);
         COV = [COV,mS];
     end
     if ~isempty(confounds)  % extract PCA over data already ortogonalised to confounds.
-        COV = [COV,detrend(confounds)];
+        COV = [COV,confounds];
     end
     if ~isempty(COV)
+        COV = detrend(COV);
         V = V-COV*(COV\V);
     end
     %----------------------------------------------------------------------
@@ -183,7 +186,7 @@ for r = 1:n_rois
             %          comp2 = [mS,score(:,1:4)];
             %----------------------------------------------------------------------------------------------------
             [U,P] = svd(V);
-            if asCONN %add the mean signal and remove one dimension
+            if firstmean %add the mean signal and remove one dimension
                 comp = [mS,U(:,1:dime(r)-1)*diag(diag(P(1:dime(r)-1,1:dime(r)-1)))];
             else
                 comp = U(:,1:dime(r))*diag(diag(P(1:dime(r),1:dime(r))));
@@ -201,9 +204,11 @@ for r = 1:n_rois
     else 
         d = [];
     end
-    X = [comp,d];
-    % variance normalize the extracted componets
-    X = X./std(X,0,1);
+    Xtmp = [comp,d];
+    % variance normalise the extracted componets
+    Xtmp = Xtmp./std(Xtmp,0,1);
+    
+    X = [X,Xtmp];
 end
     
 
