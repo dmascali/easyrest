@@ -106,18 +106,20 @@ legalValues{9} = [];                    %NetNames works only for square matrix (
 legalValues{10}= {'onesample','ttest'}; %TesType
 [tail,zscore_flag,ynan,constant,alpha_level,ShowPlot,ShoWaitBar,SqrMaType,NetNames,testype] = parse_varargin(params,defParms,legalValues,varargin);
 %---convert chars to logical variables-----
-% zscore, constant and ynan don't require char2logical convertions, they
+% zscore and ynan don't require char2logical convertions, they
 % are directly pass though er_glm
 ShowPlot = char2logical(ShowPlot);
 ShoWaitBar = char2logical(ShoWaitBar);
+constant = char2logical(constant);
 %------------------------------------------
-
-if strcmpi(testype,'onesample') %disable constant
-    constant = 'off';
-end
 
 siz = size(Y);
 n = siz(1);
+
+if constant && not(strcmpi(testype,'onesample') || zscore) 
+    X = [X,ones(n,1)];
+end
+    
 n_dimension = length(siz);
 if n_dimension == 3 && siz(2)== siz(3)
     SquareMatrix = 1;
@@ -146,14 +148,14 @@ end
 % check for NaNs in X
 nanXindex = logical(sum(isnan(X),2));
 if sum(nanXindex) > 0
-    X(nanXindex,:)   = [];
-    Y(nanXindex,:)   = [];
+    X(nanXindex,:) = [];
+    Y(nanXindex,:) = [];
     n = size(Y,1);
     warning off backtrace; warning(sprintf(['There are NaNs in the predictors (i.e.,X). They will be removed from both X and Y.\nNew observation number = ',num2str(n),'.'])); warning on backtrace;
 end
 
 %original stats, not permuted data
-[STATS_orig] = er_glm_fit_beta(Y,X,C,'zscore',zscore_flag,'ynan',ynan,'constant',constant,'tail',tail,'showplot','off'); T = STATS_orig.T;
+[STATS_orig] = er_glm_fit_beta(Y,X,C,'zscore',zscore_flag,'ynan',ynan,'constant','off','tail',tail,'showplot','off'); T = STATS_orig.T;
 Pfdr_noPermutation = mafdr(STATS_orig.P,'BHFDR','true','Showplot','false');
 
 if not(isempty(exchange))
@@ -169,13 +171,14 @@ if not(isempty(exchange))
     end
 end
 
+%add missing zeros in Contrast vector
+C = [C, zeros(1,(size(X,2)-size(C,2)))];  
+
 ind_nuisance=find(~C);
 if isempty(ind_nuisance)
     %No nuisance predictors
 else
     %Regress out nuisance predictors and compute residual
-%     b=zeros(length(ind_nuisance),M);
-%     resid_y=zeros(n,M);
     b=X(:,ind_nuisance)\Y;
     resid_y=Y-X(:,ind_nuisance)*b;
 end
@@ -227,9 +230,9 @@ for mm = 1:perm_number
         end
         if strcmpi(testype,'onesample')
             y_perm = y_perm.*repmat(sign(rand(n,1)-0.5),1,M);
-            [STATS] = er_glm_fit_beta(y_perm,X,C,'zscore',zscore_flag,'ynan',ynan,'constant',constant,'PermMode','on');
+            [STATS] = er_glm_fit_beta(y_perm,X,C,'zscore',zscore_flag,'ynan',ynan,'constant','off','PermMode','on');
         elseif strcmpi(testype,'ttest')
-            [STATS] = er_glm_fit_beta(y_perm,X,C,'zscore',zscore_flag,'ynan',ynan,'constant',constant,'PermMode','on');
+            [STATS] = er_glm_fit_beta(y_perm,X,C,'zscore',zscore_flag,'ynan',ynan,'constant','off','PermMode','on');
         end
     end
     %----for fwe---------
@@ -243,7 +246,7 @@ for mm = 1:perm_number
     pvals_ttails = pvals_ttails + (abs(T) <= abs(STATS.T));
     if ShoWaitBar; waitbar(mm/perm_number,h); end
 end
-if ShoWaitBar; close(h); end;
+if ShoWaitBar; close(h); end
 
 %----for fdr---------
 PPermBased.P(1).P = pvals_ttails/perm_number;   PPermBased.fdr(1).P = mafdr(PPermBased.P(1).P,'BHFDR','true','Showplot','false');
