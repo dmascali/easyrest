@@ -18,7 +18,7 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % Property list (details below):
 %         "ynan"     = "skip" / "remove" (default skip)
 %         "constant" = "on"   / "off"    (default on)
-%         "rmvobs"  = [4 6 34]          (default [])
+%         "rmvobs"  = [4 6 34]           (default [])
 %         "tail"     = "both" / "single" (default both)
 %         "zscore"   = "on"   / "off"    (default off)
 %         "r2t"      = "on"   / "off"    (default off)
@@ -80,8 +80,8 @@ if nargin == 0
 end
 
 %--------------VARARGIN----------------------
-params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot','rmvobs'};
-defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on',      []};
+params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot','rmvobs','spearman'};
+defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on',      [],     'off'};
 legalValues{1} = {'both','single'};
 legalValues{2} = {'on','off'};
 legalValues{3} = {'on','off'};
@@ -92,7 +92,8 @@ legalValues{7} = {'on','off'};
 legalValues{8} = {'on','off'};
 legalValues{9} = {'on','off'};
 legalValues{10} = [];
-[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs] = parse_varargin(params,defParms,legalValues,varargin,1);
+legalValues{11} = {'on','off'};
+[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs,spearman] = parse_varargin(params,defParms,legalValues,varargin,1);
 % %---convert chars to logical variables-----
 % zscore_flag = char2logical(zscore_flag);
 % zStat_flag = char2logical(zStat_flag);
@@ -117,6 +118,11 @@ if ~isempty(rmvobs)
     X(rmvobs,:) = [];
     n = size(Y,1);
 end 
+
+if spearman
+    %force zscore on
+    zscore_flag = 1;
+end
 
 warning off backtrace;
 % check for NaNs in X
@@ -149,8 +155,11 @@ warning on backtrace;
 
 
     
-if ~remove_ynan  %skip case (default)
-    
+if ~remove_ynan  %skip case (default)  
+    if spearman
+        X = tiedrank(X);
+        Y = tiedrank(Y);
+    end
     if zscore_flag
         Y = zscore(Y);
         X = zscore(X);
