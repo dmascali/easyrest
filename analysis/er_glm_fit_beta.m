@@ -136,19 +136,29 @@ if sum(nanXindex) > 0
     end
 end
 
+
+rang = rank(X); 
+
 %check for NaNs in Y
 remove_ynan = 0;
-if logical(sum(sum(isnan(Y),1)))
+NaNindex = logical(sum(isnan(Y),1));   %where thare are at least one NaN in Y
+if logical(sum(NaNindex))
     switch ynan
         case {'skip'}
             if ~PermMode
                 warning('There are NaNs in some of the responding variables (Y). For those variables no fit will be performed. You can use the option "ynan" to change this behaviour');
             end
+            Ynan.n = n;
+            Ynan.index{1} = find(not(NaNindex));                     %NOT NaN index  
+            Ynan.index{2} = [];                                      % columns with at least one NaN will not be processed
         case {'remove'}
             remove_ynan = 1;
             if ~PermMode
                 warning('There are NaNs in some of the responding variables (Y). NaNs will be removed and the fit will be performed seprately for each reponding variable.');
             end
+            Ynan.n = n-sum(isnan(Y),1);
+            Ynan.index{1} = find(not(NaNindex));                     %NOT NaN index  
+            Ynan.index{2} = find( (Ynan.n > (rang+1)) & NaNindex);   %NaN index & valid (enough dof)
     end
 end
 warning on backtrace;
