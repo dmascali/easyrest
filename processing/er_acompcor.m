@@ -20,6 +20,10 @@ function X = er_acompcor(data,rois,dime,confounds,varargin)
 %   'derivatives' : is a vector of roi length that specifies the degree of
 %                   derivatives to be computed on the extracted singals
 %                   {default=[],which is the same as zeros(1,length(rois))
+%   'squares'     : is a vector of roi length that specifies (flag 1/0)
+%                   whether to compute the squares of the extracted signals
+%                   (as well as the squares of derivatives, if present)
+%                   {default=[],which is the same as zeros(1,length(rois))
 %   'TvarNormalise':['on'/'off'], if set to 'on' the data is normalised by
 %                   its temporal variance {default='off'}
 %   'DataCleared' : ['true'/'false'] if 'true' the function avoids to seek
@@ -41,13 +45,14 @@ if nargin < 3
 end
 
 %--------------VARARGIN----------------------
-params  =  {'firstmean','derivatives','TvarNormalise','DataCleared'};
-defParms = {      'off',           [],          'off',      'false'};
+params  =  {'firstmean','derivatives','squares','TvarNormalise','DataCleared'};
+defParms = {      'off',           [],       [],          'off',      'false'};
 legalValues{1} = {'on','off'};
 legalValues{2} = [];
-legalValues{3} = {'on','off'};
-legalValues{4} = {'true','false'};
-[firstmean,deri,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin,1);
+legalValues{3} = [];
+legalValues{4} = {'on','off'};
+legalValues{5} = {'true','false'};
+[firstmean,deri,squares,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin,1);
 % --------------------------------------------
 
 if ~iscell(rois)
@@ -60,12 +65,20 @@ end
 if ~isempty(deri)
     %check if there is one value for each roi
     if length(deri) ~= n_rois
-        error('Please specify a derivative value for each roi e.g., ...,''der'',[1 0]');
+        error('Please specify a derivative value for each roi e.g., ...,''derivatives'',[1 0]');
     end
 else
     deri = zeros(1,n_rois);
 end
 
+if ~isempty(squares)
+    %check if there is one value for each roi
+    if length(squares) ~= n_rois
+        error('Please specify a square flag for each roi e.g., ...,''squares'',[1 0]');
+    end
+else
+    squares= zeros(1,n_rois);
+end
 
 %--------------------------------------------------------------------------
 %------LOADING DATA  and reshape-------------------------------------------
@@ -205,6 +218,10 @@ for r = 1:n_rois
         d = [];
     end
     Xtmp = [comp,d];
+    % squares computation, if requested
+    if squares(r) > 0
+        Xtmp = [Xtmp,Xtmp.^2];
+    end
     % variance normalise the extracted componets
     Xtmp = Xtmp./std(Xtmp,0,1);
     
