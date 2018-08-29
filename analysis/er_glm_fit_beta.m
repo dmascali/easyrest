@@ -18,8 +18,8 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % Property list (details below):
 %         "ynan"     = "skip" / "remove" (default skip)
 %         "constant" = "on"   / "off"    (default on)
-%         "rmvobs"  = [4 6 34]           (default [])
-%         "tail"     = "both" / "single" (default both)
+%         "rmvobs"   = [4 6 34]           (default [])
+%         "tail"     = "both" / "right" / "left" / "single" (default both)
 %         "zscore"   = "on"   / "off"    (default off)
 %         "r2t"      = "on"   / "off"    (default off)
 %         "Z-stat"   = "on"   / "off"    (default off)
@@ -45,7 +45,9 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 %
 % Two-tails p-value are output by default. To swich to single tail test use
 % the property "tail"
-%         "tail" = "both"/"single" (default both)
+%         "tail" = "both" / "right" / "left" / "single" (default both)
+% The "single" mode is a simultaneous left and right test (generally
+% deprecated).
 %
 % You can standardize X and Y via the property "zscore" which removes the
 % mean and divides by std both X and Y (mean = 0; std = 1). It is a usefull
@@ -82,7 +84,7 @@ end
 %--------------VARARGIN----------------------
 params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot','rmvobs','spearman'};
 defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on',      [],     'off'};
-legalValues{1} = {'both','single'};
+legalValues{1} = {'both','right','left','single'};
 legalValues{2} = {'on','off'};
 legalValues{3} = {'on','off'};
 legalValues{4} = {'on','off'};
@@ -234,21 +236,20 @@ if ~isempty(C)
 
     %-------------------------P----------------------------------
     if ~PermMode
+        T = double(T);
         if ~remove_ynan  %skip case (default)
             switch tail
                 case {'both'}
-                    if C_number == 1 && zscore_flag && r2t %case Pearson (T not from model)
-                        P =  2 * tcdf(-abs(T), n-2);
-                    else
-                        P =  2 * tcdf(-abs(T), n-rang);
-                    end
+                    P =  2 * tcdf(-abs(T), (n-rang-zscore_flag));   %zscoring is equivalent to add a constant vector in the model
+                case {'right'}
+                    P = tcdf(-T,(n-rang-zscore_flag));
+                case {'left'}
+                    P = tcdf(T,(n-rang-zscore_flag));
                 case {'single'}
-                    P = zeros(size(T));
-                    P(T>0) = tcdf(-T(T>0),n-rang);
-                    P(T<0) = tcdf(T(T<0),n-rang);
+                    P =  tcdf(-abs(T), (n-rang-zscore_flag));
             end
         else
-            P = p_remove_ynan(T,Ynan,rang,tail,r2t,zscore_flag,C_number);
+            P = p_remove_ynan(T,Ynan,rang,tail,zscore_flag);
             B = Ynan.B;
         end
         if fdr || showplot
@@ -262,15 +263,32 @@ if ~isempty(C)
     
     %-------------------------Z----------------------------------
     if zStat_flag
-        %OLD:        % Calculating Z-score. tcdf has a poor precision so z-score is limited to
-        %            something like 8.
-        % check if it is true!
-        % TODO chek if precision is accurately (i.e., max Z == 38.5)
-        T = double(T);
+        % to obtain the Z-score the equations would be
+        %    Z(T>0) = -norminv(tcdf(-T(T>0),dof));  %-sqrt(2)*erfcinv(2*P(T<0)); 
+        %    Z(T<0) =  norminv(tcdf( T(T<0),dof));  %sqrt(2).*erfcinv(2*P(T>0))
+        % to avoid recomputing the P values, I adjust the above calculated
+        % P-values according to the chosen tail. However, that doesn't work
+        % for left and right tail (not enough precision to compute 1-P when
+        % P is close to 1)
         Z = zeros(size(T));
-        Z(T>0) = sqrt(2).*erfcinv(2*P(T>0));
-        Z(T<0) = -sqrt(2)*erfcinv(2*P(T<0));
-        Z(Z==Inf)=38.5;
+        switch tail
+            case {'both'}
+                Z(T>0) = -norminv(P(T>0)./2);  
+                Z(T<0) =  norminv(P(T<0)./2);   
+            case {'left', 'right'}
+                if ~remove_ynan  %skip case (default)
+                    Z(T>0) = -norminv(tcdf(-T(T>0),(n-rang-zscore_flag)));
+                    Z(T<0) =  norminv(tcdf( T(T<0),(n-rang-zscore_flag)));
+                else
+                    Ptmp = p_remove_ynan(T,Ynan,rang,'single',zscore_flag);
+                    Z(T>0) = -norminv(Ptmp(T>0));  
+                    Z(T<0) =  norminv(Ptmp(T<0)); 
+                end
+             case {'single'}  
+                Z(T>0) = -norminv(P(T>0));  
+                Z(T<0) =  norminv(P(T<0));    
+        end
+        Z(Z==Inf)=38.5;  %z-score are limited to such value
         Z(Z==-Inf)=-38.5;
     end
     %------------------------------------------------------------
@@ -372,29 +390,31 @@ end
 return
 end
 
-function P = p_remove_ynan(T,Ynan,rang,tail,r2t,zscore_flag,C_number)
+function P = p_remove_ynan(T,Ynan,rang,tail,zscore_flag)
 
 P = nan(size(T));
 
 switch tail
     case {'both'}
-        if C_number == 1 && zscore_flag && r2t %case Pearson (T not from model)
-            P(:,Ynan.index{1}) =  2 * tcdf(-abs(T(:,Ynan.index{1})), Ynan.n(Ynan.index{1}(1))-2);
-            for l = 1:length(Ynan.index{2})
-                P(:,Ynan.index{2}(l)) =  2 * tcdf(-abs(T(:,Ynan.index{2}(l))), Ynan.n(Ynan.index{2}(l))-2);
-            end
-        else
-            P(:,Ynan.index{1}) = 2 * tcdf(-abs(T(:,Ynan.index{1})), Ynan.n(Ynan.index{1}(1))-rang);
-            for l = 1:length(Ynan.index{2})
-                P(:,Ynan.index{2}(l)) =  2 * tcdf(-abs(T(:,Ynan.index{2}(l))), Ynan.n(Ynan.index{2}(l))-rang);
-            end
+        P(:,Ynan.index{1}) =  2 * tcdf(-abs(T(:,Ynan.index{1})), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        for l = 1:length(Ynan.index{2})
+            P(:,Ynan.index{2}(l)) =  2 * tcdf(-abs(T(:,Ynan.index{2}(l))), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
+        end
+    case {'right'}
+        P(:,Ynan.index{1}) =  tcdf(-T(:,Ynan.index{1}), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        for l = 1:length(Ynan.index{2})
+            P(:,Ynan.index{2}(l)) =  tcdf(-T(:,Ynan.index{2}(l)), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
+        end
+    case {'left'}
+        P(:,Ynan.index{1}) =  tcdf(T(:,Ynan.index{1}), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        for l = 1:length(Ynan.index{2})
+            P(:,Ynan.index{2}(l)) =  tcdf(T(:,Ynan.index{2}(l)), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
         end
     case {'single'}
-        warning('P with single tail is not available when ynan is set to remove.');
-        return
-%         P = zeros(size(T));
-%         P(T>0) = tcdf(-T(T>0),n-rang);
-%         P(T<0) = tcdf(T(T<0),n-rang);
+        P(:,Ynan.index{1}) =  tcdf(-abs(T(:,Ynan.index{1})), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        for l = 1:length(Ynan.index{2})
+            P(:,Ynan.index{2}(l)) =  tcdf(-abs(T(:,Ynan.index{2}(l))), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
+        end
 end
 
 return
