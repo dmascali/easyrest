@@ -11,6 +11,8 @@ function varargout = parse_varargin(params,defparams,legalvalues,var_arg,char2lo
 % LEGALVALUES can be empty (no check #2). For integer LEGALVALUES do not
 % provide them as cell (see example). 
 %
+%NB: varargout are forced to be LOWERCASE!
+%
 %If CHAR2LOGIC is provided (and ~= 0), the function performs automatic convertion of 
 % chars to logical in case of: 'on',true','go' -> 1; 'off','false','stop' -> 0.
 %
@@ -94,13 +96,13 @@ for l = 1:n_params
         if char2logic && sum(strcmpi(tobeconverted,var_arg{inputExist+1})) %convert to logical if appropriate
             varargout{l} = char2logical(var_arg{inputExist+1},char2logical_true,char2logical_false);
         else
-            varargout{l} = var_arg{inputExist+1};
+            varargout{l} = lower(var_arg{inputExist+1});
         end
     else %assign default value
         if char2logic && sum(strcmpi(tobeconverted,defparams{l})) %convert to logical if appropriate
             varargout{l} = char2logical(defparams{l},char2logical_true,char2logical_false);
         else        
-            varargout{l} = defparams{l};
+            varargout{l} = lower(defparams{l});
         end
 
     end
