@@ -1,5 +1,5 @@
 function [res,des_info,X] = er_rs_cleaning(Y,concat_index,TR,polort,pass_band,ort,cens,varargin)
-% ER_RE_CLEANING mimics AFNI 3dTproject
+% ER_RS_CLEANING mimics AFNI 3dTproject
 %
 % Y must be NxV (points x voxels)
 % in case of concatenated runs use concat_index [1 240 480] to specify the starting index of each run. Otherwise put
@@ -84,16 +84,16 @@ end
 
 %add ort regressors
 if ~isempty(ort)
-    s_ort = size(ort);
-    if s_ort(1) ~= size(X,1) 
-        error('ort regressors don''t have the correct size');
-    end
     %demean ort
     if ortdemean
         ort = ort -mean(ort,1);
     end
     M_ort = size(ort,2);
-    X = [X,ort];
+    try
+        X = [X,ort];
+    catch
+        error('ort regressors don''t have the correct size');
+    end
 else
     M_ort = 0;
 end
