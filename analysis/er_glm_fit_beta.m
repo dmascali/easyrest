@@ -149,7 +149,7 @@ if logical(sum(sum(isnan(Y),1)))
         case {'remove'}
             remove_ynan = 1;
             if ~PermMode
-                warning('There are NaNs in some of the responding variables (Y). NaNs will be removed and the fit will be performed seprately for each reponding variable.');
+                warning('There are NaNs in some of the responding variables (Y). NaNs will be removed and the fit will be performed separately for each reponding variable.');
             end
     end
 end
@@ -310,15 +310,15 @@ if ~isempty(C)
             STATS.T  = reshape(T, [C_number,siz(2:end)]);
             STATS.P  = reshape(P, [C_number,siz(2:end)]);
             if zStat_flag;      STATS.Z    = reshape(Z,     [C_number,siz(2:end)]); end
-            if remove_ynan;     STATS.N    = reshape(Ynan.n,[1,siz(2:end)]);        end
             if fdr || showplot; STATS.Pfdr = reshape(Pfdr,  [C_number,siz(2:end)]); end
+            if remove_ynan;     STATS.N    = reshape(Ynan.n,siz(2:end));        else STATS.N = n; end
         elseif n_dimension == 2
             STATS.B  = B;
             STATS.CB = CB; 
             STATS.T  = T;
             STATS.P  = P;
             if zStat_flag;  STATS.Z = Z;      end
-            if remove_ynan; STATS.N = Ynan.n; end
+            if remove_ynan; STATS.N = Ynan.n; else STATS.N = n; end
             if fdr;         STATS.Pfdr = Pfdr;end
         end
         if showplot
