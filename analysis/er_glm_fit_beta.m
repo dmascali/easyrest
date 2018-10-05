@@ -140,7 +140,7 @@ end
 
 %check for NaNs in Y
 remove_ynan = 0;
-if logical(sum(sum(isnan(Y),1)))
+if logical(sum(sum(isnan(Y),1)))  %check if thereis at least one NaN
     switch ynan
         case {'skip'}
             if ~PermMode
@@ -184,19 +184,20 @@ if ~remove_ynan  %skip case (default)
 else  %remove yNaNs
     %add constant term. There is no need to add the constant term after zscore convertion.   
     if constant && ~zscore_flag; X = [X,ones(n,1)]; end  
-
-    Ynan.n = n-sum(isnan(Y),1);
+    
+    NaNcount = sum(isnan(Y),1);   
+    Ynan.n = n - NaNcount;
     rang = rank(X); 
     
     %find indexes
-    NaNindex = logical(sum(isnan(Y),1));   %where thare are at least one NaN in Y
+    NaNindex = logical(NaNcount);   %where thare are at least one NaN in Y
     Ynan.index{1} = find(not(NaNindex));                     %NOT NaN index  
     Ynan.index{2} = find( (Ynan.n > (rang+1)) & NaNindex);   %NaN index & valid (enough dof)
     
     % initialize to NaN
     Ynan.B       = nan(rang,size(Y,2));
     Ynan.sigma2  = nan(1,size(Y,2));
-    Ynan.notNaNx = nan(n,length(Ynan.index{2}));
+    Ynan.notNaNx = nan(n,length(Ynan.index{2})); %this variable is needed for index{2} ie., when there are NaNs
 
     [Ynan.B(:,Ynan.index{1}),Ynan.sigma2(1,Ynan.index{1}),~] = do_fit_remove_ynan(Y(:,Ynan.index{1}),X,rang,zscore_flag);
     
@@ -396,22 +397,30 @@ P = nan(size(T));
 
 switch tail
     case {'both'}
-        P(:,Ynan.index{1}) =  2 * tcdf(-abs(T(:,Ynan.index{1})), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        if ~isempty(Ynan.index{1})
+            P(:,Ynan.index{1}) =  2 * tcdf(-abs(T(:,Ynan.index{1})), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        end
         for l = 1:length(Ynan.index{2})
             P(:,Ynan.index{2}(l)) =  2 * tcdf(-abs(T(:,Ynan.index{2}(l))), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
         end
     case {'right'}
-        P(:,Ynan.index{1}) =  tcdf(-T(:,Ynan.index{1}), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        if ~isempty(Ynan.index{1})
+            P(:,Ynan.index{1}) =  tcdf(-T(:,Ynan.index{1}), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        end
         for l = 1:length(Ynan.index{2})
             P(:,Ynan.index{2}(l)) =  tcdf(-T(:,Ynan.index{2}(l)), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
         end
     case {'left'}
-        P(:,Ynan.index{1}) =  tcdf(T(:,Ynan.index{1}), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        if ~isempty(Ynan.index{1})
+            P(:,Ynan.index{1}) =  tcdf(T(:,Ynan.index{1}), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        end
         for l = 1:length(Ynan.index{2})
             P(:,Ynan.index{2}(l)) =  tcdf(T(:,Ynan.index{2}(l)), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
         end
     case {'single'}
-        P(:,Ynan.index{1}) =  tcdf(-abs(T(:,Ynan.index{1})), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        if ~isempty(Ynan.index{1})
+            P(:,Ynan.index{1}) =  tcdf(-abs(T(:,Ynan.index{1})), (Ynan.n(Ynan.index{1}(1))-rang-zscore_flag));
+        end
         for l = 1:length(Ynan.index{2})
             P(:,Ynan.index{2}(l)) =  tcdf(-abs(T(:,Ynan.index{2}(l))), (Ynan.n(Ynan.index{2}(l))-rang-zscore_flag));
         end
