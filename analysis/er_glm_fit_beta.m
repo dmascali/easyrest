@@ -4,11 +4,11 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % C is a matrix containing contrast vectors for inference (t-test; one 
 % contrast for each row as in SPM). Use C = eye(size(X,2)) to test all predictors.
 % Put C = [], if you just need residuals and don't care for statistical
-% inference (usefull if you just want to regress out confounds from data).
+% inference (usefull if you just want to regress out confounds from Y).
 %
-%       [STATS]     = ER_GLM(..) returns statitical inference.
-%       [STATS,RES] = ER_GLM(..) returns statitical inference and
-%                                residuals.
+%       [STATS]     = ER_GLM(Y,X,C)  returns statitical inference.
+%       [STATS,RES] = ER_GLM(Y,X,C)  returns statitical inference and
+%                                    residuals.
 % 
 % Y can be a vector of observations or an N-dimensional matrix with the 
 % first dimension containing observations and the other dimensions running 
@@ -16,16 +16,17 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % variable 2 ...).
 %
 % Property list (details below):
-%         "ynan"     = "skip" / "remove" (default skip)
-%         "constant" = "on"   / "off"    (default on)
-%         "rmvobs"   = [4 6 34]           (default [])
-%         "tail"     = "both" / "right" / "left" / "single" (default both)
-%         "zscore"   = "on"   / "off"    (default off)
-%         "r2t"      = "on"   / "off"    (default off)
-%         "Z-stat"   = "on"   / "off"    (default off)
-%         "fdr"      = "on"   / "off"    (default off)
-%         "PermMode" = "on"   / "off"    (default off) 
-%         'showplot' = 'on'   / 'off'    (default on)
+%        "ynan"       = "skip" / "remove" (default skip)
+%        "constant"   = "on"   / "off"    (default on )
+%        "rmvobs"     = [4 6 34]          (default [] )
+%        "tail"       = "both" / "right" / "left" / "single" (default both)
+%        "zscore"     = "on"   / "off"    (default off)
+%        "r2t"        = "on"   / "off"    (default off)
+%        "Z-stat"     = "on"   / "off"    (default off)
+%        "fdr"        = "on"   / "off"    (default off)
+%        "PermMode"   = "on"   / "off"    (default off)
+%        "showplot"   = "on"   / "off"    (default on )
+%        "PartialReg" = "on"   / "off"    (default off) 
 % 
 % NaNs in Y are controlled with the property "ynan". NB: NaNs in X will be 
 % automatically removed, no matter of the following properties.
@@ -68,9 +69,16 @@ function [STATS,RES] = er_glm_fit_beta(Y,X,C,varargin)
 % corrected p-values will be stored in STATS.Pfdr
 %         "fdr"    = "on"/"off" (default off). Returns also FDR p-values.
 %
+% If PartialReg is "on", no statistical inference will be carried out, but
+% only partial confound regression. The C vector will be used to select the
+% the predictors in X to be regressed out from Y. In this modality ynan is
+% forced to be in mode "skip". NB: when selecting the predictors remember
+% that by default a constant vector is added as the very last column of X. 
+%         "ParialReg" = "on"/"off" (default off)
+%
 % "PermMode" is a non verbose modality with no P-value computation (It's handy
 % when this function is called several times by er_permutation_inference.)
-%        "PermMode"= "on"/"off" (default off)
+%         "PermMode"= "on"/"off" (default off)
 %__________________________________________________________________________
 %
 %   Version 1.0
@@ -82,8 +90,8 @@ if nargin == 0
 end
 
 %--------------VARARGIN----------------------
-params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot','rmvobs','spearman'};
-defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on',      [],     'off'};
+params  =  {'tail','zscore','Z-stat','r2t', 'ynan','constant','fdr','permmode','showplot','rmvobs','spearman','PartialReg'};
+defParms = {'both',   'off',   'off','off', 'skip',      'on','off',     'off',      'on',      [],     'off',       'off'};
 legalValues{1} = {'both','right','left','single'};
 legalValues{2} = {'on','off'};
 legalValues{3} = {'on','off'};
@@ -95,7 +103,8 @@ legalValues{8} = {'on','off'};
 legalValues{9} = {'on','off'};
 legalValues{10} = [];
 legalValues{11} = {'on','off'};
-[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs,spearman] = parse_varargin(params,defParms,legalValues,varargin,1);
+legalValues{12} = {'on','off'};
+[tail,zscore_flag,zStat_flag,r2t,ynan,constant,fdr,PermMode,showplot,rmvobs,spearman,PartialReg] = parse_varargin(params,defParms,legalValues,varargin,1);
 % %---convert chars to logical variables-----
 % zscore_flag = char2logical(zscore_flag);
 % zStat_flag = char2logical(zStat_flag);
@@ -130,7 +139,7 @@ warning off backtrace;
 % check for NaNs in X
 nanXindex = logical(sum(isnan(X),2));
 if sum(nanXindex) > 0
-    X(nanXindex,:)   = [];
+    X(nanXindex,:) = [];
     Y(nanXindex,:) = [];
     n = size(Y,1);
     if ~PermMode
@@ -138,22 +147,29 @@ if sum(nanXindex) > 0
     end
 end
 
-%check for NaNs in Y
-remove_ynan = 0;
-if logical(sum(sum(isnan(Y),1)))  %check if thereis at least one NaN
-    switch ynan
-        case {'skip'}
-            if ~PermMode
-                warning('There are NaNs in some of the responding variables (Y). For those variables no fit will be performed. You can use the option "ynan" to change this behaviour');
-            end
-        case {'remove'}
-            remove_ynan = 1;
-            if ~PermMode
-                warning('There are NaNs in some of the responding variables (Y). NaNs will be removed and the fit will be performed separately for each reponding variable.');
-            end
+if PartialReg
+    %parital regression is only ynan = skip
+    fprintf(['\nPartialReg mode on. Regressing out indeces:\n ',num2str(C),'\n'])
+    remove_ynan  = 0;
+else
+    %check for NaNs in Y
+    remove_ynan = 0;
+    if logical(sum(sum(isnan(Y),1)))  %check if thereis at least one NaN
+        switch ynan
+            case {'skip'}
+                if ~PermMode
+                    warning('There are NaNs in some of the responding variables (Y). For those variables no fit will be performed. You can use the option "ynan" to change this behaviour');
+                end
+            case {'remove'}
+                remove_ynan = 1;
+                if ~PermMode
+                    warning('There are NaNs in some of the responding variables (Y). NaNs will be removed and the fit will be performed separately for each reponding variable.');
+                end
+        end
     end
+    warning on backtrace;
 end
-warning on backtrace;
+
 
 
     
@@ -168,19 +184,23 @@ if ~remove_ynan  %skip case (default)
     else %add constant term. There is no need to add the constant term after zscore convertion.   
         if constant; X = [X,ones(n,1)]; end  
     end
-    
     rang = rank(X);
     
     B = (X\Y);
-    RES = Y-X*B;
-    %R2 and R2 adj computation
-    SSres = sum(RES.^2,1);
-    SStot = sum(bsxfun(@minus,Y,mean(Y)).^2,1);
-    R2    = 1-SSres./SStot;
-    R2adj = 1-(1-R2).*( (n-1)./(n-rang) ); % assuming rang == size(X,2). Non singular desing. 
-    
-    %-------------------------
-    sigma2 = SSres/(n-rang);
+    if PartialReg
+        RES = Y- X(:,C)*B(C,:);
+    else
+        RES = Y-X*B;
+    end
+    if ~isempty(C) && ~PartialReg
+        %R2 and R2 adj computation
+        SSres = sum(RES.^2,1);
+        SStot = sum(bsxfun(@minus,Y,mean(Y)).^2,1);
+        R2    = 1-SSres./SStot;
+        R2adj = 1-(1-R2).*( (n-1)./(n-rang) ); % assuming rang == size(X,2). Non singular desing.   
+        %-------------------------
+        sigma2 = SSres/(n-rang);  %for t-test computation
+    end
 else  %remove yNaNs
     %add constant term. There is no need to add the constant term after zscore convertion.   
     if constant && ~zscore_flag; X = [X,ones(n,1)]; end  
@@ -208,14 +228,31 @@ else  %remove yNaNs
     Ynan.notNaNx = logical(Ynan.notNaNx);
 end
 
-% C adjustment must be here since size(X,2) can change in case the
-% constant term has been added
-if ~isempty(C)
+%Always output a stats struct with basic model info even in no inference was
+%carried out
+if ~PermMode
+    STATS.model.X = X;
+    STATS.model.C = C;   %in case of PartialReg C is not modified
+    if exist('R2','var');   STATS.model.R2    = R2;     end;   %R2 is not available in ynan remove mode.
+    if exist('R2adj','var');STATS.model.R2adj = R2adj;  end;
+    STATS.model.constant = constant;
+    STATS.model.ynan = ynan;
+    STATS.model.zscore = zscore_flag;
+    STATS.model.r2t = r2t;
+    if n_dimension > 2
+        STATS.B  = reshape(B,[rang,siz(2:end)]); %reshaping checked (with an epi). It works
+        if remove_ynan;     STATS.N    = reshape(Ynan.n,siz(2:end));        else STATS.N = n; end
+    elseif n_dimension == 2
+        STATS.B  = B;
+    end
+end
+    
+if ~isempty(C) && ~PartialReg
+    % C adjustment must be here since size(X,2) can change in case the
+    % constant term has been added
     warning off; C = [C, zeros(size(C,1),(size(X,2)-size(C,2)))];warning on;  %add missing zeros
     C_number = size(C,1);
-end
-
-if ~isempty(C)
+    STATS.model.C = C;  %overwrite this variable
     %--------------------------T----------------------------------
     if ~remove_ynan  %skip case (default)
         if C_number == 1
@@ -297,24 +334,13 @@ if ~isempty(C)
     
     %--------------------reshape and output----------------------
     if ~PermMode
-        STATS.model.X = X;
-        STATS.model.C = C;
-        if exist('R2','var');   STATS.model.R2    = R2;     end;   %R2 is not available in ynan remove mode.
-        if exist('R2adj','var');STATS.model.R2adj = R2adj;  end;
-        STATS.model.constant = constant;
-        STATS.model.ynan = ynan;
-        STATS.model.zscore = zscore_flag;
-        STATS.model.r2t = r2t;
-        if n_dimension > 2
-            STATS.B  = reshape(B,[rang,siz(2:end)]); %reshaping checked (with an epi). It works
+        if n_dimension > 2         
             STATS.CB = reshape(CB,[C_number,siz(2:end)]); 
             STATS.T  = reshape(T, [C_number,siz(2:end)]);
             STATS.P  = reshape(P, [C_number,siz(2:end)]);
             if zStat_flag;      STATS.Z    = reshape(Z,     [C_number,siz(2:end)]); end
-            if fdr || showplot; STATS.Pfdr = reshape(Pfdr,  [C_number,siz(2:end)]); end
-            if remove_ynan;     STATS.N    = reshape(Ynan.n,siz(2:end));        else STATS.N = n; end
+            if fdr || showplot; STATS.Pfdr = reshape(Pfdr,  [C_number,siz(2:end)]); end           
         elseif n_dimension == 2
-            STATS.B  = B;
             STATS.CB = CB; 
             STATS.T  = T;
             STATS.P  = P;
@@ -333,10 +359,13 @@ if ~isempty(C)
             STATS.T = T;
         end
     end
-
     %------------------------------------------------------------
-else
-    STATS = [];
+end
+
+if nargout > 1 %output res
+    if n_dimension > 2
+        RES = reshape(RES,[n,siz(2:end)]);
+    end
 end
 
 
