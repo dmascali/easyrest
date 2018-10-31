@@ -241,7 +241,7 @@ end
 
 % sendstatus if required
 if isfield(ER.others,'sendstatus') && ~isempty(ER.others.sendstatus)
-    er_sendstatus(ER.others.sendstatus)
+    sendstatus(ER.others.sendstatus)
 end
 
 clearvars -global opt
@@ -2203,6 +2203,7 @@ if opt.AUX.seedmeasure
         data_info = str2num(data_info);
         for z = 1:length(list_ROIS)
             [~,roi_info] = system(['3dinfo -ni -nj -nk -nv -dminus -dmaxus ',opt.DATA.ROIS(z,:)]);
+            roi_info = fix_float_errors(roi_info);
             roi_info = str2num(roi_info);
             if roi_info(1)~=data_info(1) || roi_info(2)~=data_info(2) || roi_info(3)~=data_info(3) 
                 error(['ROI: ', c_b(opt.DATA.ROIS(z,:)),' has not the same size of functional data.']);
@@ -2243,6 +2244,7 @@ if opt.AUX.TODO_RtoR
                 data_info = str2num(data_info);
                 for z = 1:length(list_ROIS)
                     [~,roi_info] = system(['3dinfo -ni -nj -nk -nv -dminus -dmaxus ',opt.RtoR.ROIS(z,:)]);
+                    roi_info = fix_float_errors(roi_info);
                     roi_info = str2num(roi_info);
                     if roi_info(1)~=data_info(1) || roi_info(2)~=data_info(2) || roi_info(3)~=data_info(3) 
                         error(['RtoR. ROI: ', c_b(opt.RtoR.ROIS(z,:)),' has not the same size of functional data.']);
@@ -2508,6 +2510,7 @@ if opt.AUX.seedmeasure && (~opt.AUX.bmi_done || opt.AUX.new_rois )
         for z = 1:length(list_ROIS)
             %[status,roi_info] = system(['3dinfo -ni -nj -nk -nv -dminus -dmaxus ',opt.DATA.ROIS(z,:)]);
             [status,roi_info] = system(['3dinfo -ni -nj -nk -nv -dminus -dmaxus ',opt.DATA.ROIS(z,:)]);
+            roi_info = fix_float_errors(roi_info);
             roi_info = str2num(roi_info);
             if roi_info(1)~=data_info(1) || roi_info(2)~=data_info(2) || roi_info(3)~=data_info(3) 
                 error(['ROI: ', c_b(opt.DATA.ROIS(z,:)),' has not the same size of functional data.']);
@@ -2552,6 +2555,7 @@ if opt.AUX.TODO_RtoR
                 data_info = str2num(data_info);
                 for z = 1:length(list_ROIS)
                     [~,roi_info] = system(['3dinfo -ni -nj -nk -nv -dminus -dmaxus ',opt.RtoR.ROIS(z,:)]);
+                    roi_info = fix_float_errors(roi_info);
                     roi_info = str2num(roi_info);
                     if roi_info(1)~=data_info(1) || roi_info(2)~=data_info(2) || roi_info(3)~=data_info(3) 
                         error(['RtoR. ROI: ', c_b(opt.RtoR.ROIS(z,:)),' has not the same size of functional data.']);
@@ -3313,8 +3317,8 @@ for l=1:size(opt.DATA.ROIS,1)   %ciclo rois
     [status,string] =system(['3dcalc -a ',opt.DATA.ROIS(l,:),' -b ',opt.AUX.bmask_path{1,1},' -prefix _bmi_',roi_str,'.nii -expr ''a*b''']);control(status,string);
     bef = spm_read_vols(spm_vol(c_b(opt.DATA.ROIS(l,:))));
     aft = spm_read_vols(spm_vol(['_bmi_',roi_str,'.nii']));
-    v_bef = int64(sum(bef(:)));
-    v_aft = int64(sum(aft(:)));
+    v_bef = int64(nansum(bef(:)));   %can be NaN if produced by SPM
+    v_aft = int64(nansum(aft(:)));
     if v_aft == 0
         err_indx(l,1) = 1;
     elseif v_bef ~= v_aft
@@ -3383,7 +3387,7 @@ for l=1:size(opt.DATA.ROIS,1)   %ciclo rois
                 bef = spm_read_vols(spm_vol(c_b(opt.DATA.ROIS(l,:))));
                 aft = opt.AUX.bmask_img{g,k}.*bef;
                 %v_bef = int64(sum(bef(:)));
-                v_aft = int64(sum(aft(:)));
+                v_aft = int64(nansum(aft(:)));
                 if v_aft == 0
                     err_indx(l,1) = err_indx(l,1) + 1;
                 end
@@ -3468,8 +3472,8 @@ for l=1:size(opt.RtoR.ROIS,1)   %ciclo rois
     [status,string] =system(['3dcalc -a ',opt.RtoR.ROIS(l,:),' -b ',opt.AUX.bmask_path{1,1},' -prefix _bmi_',roi_str,'.nii -expr ''a*b''']);control(status,string);
     bef = spm_read_vols(spm_vol(c_b(opt.RtoR.ROIS(l,:))));
     aft = spm_read_vols(spm_vol(['_bmi_',roi_str,'.nii']));
-    v_bef = int64(sum(bef(:)));
-    v_aft = int64(sum(aft(:)));
+    v_bef = int64(nansum(bef(:)));   %can be NaN if produced by SPM
+    v_aft = int64(nansum(aft(:)));
     if v_aft == 0
         err_indx(l,1) = 1;
     elseif v_bef ~= v_aft
@@ -4845,5 +4849,20 @@ end
 function [str] = r_b(str)    %c_b stands for replace blanks
 %replace blank space with '_' 
 str(str==' ') = '_';
+return
+end
+
+function str = fix_float_errors(str)
+% remove AFNI warning "corrected tot float errors 
+% apparently can't be turned off via environment variables
+
+mark = 'float errors';
+
+indx = strfind(str,mark);
+
+if not(isempty(indx))
+    str(1:(indx + length(mark))) = [];
+end
+
 return
 end
