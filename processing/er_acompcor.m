@@ -157,7 +157,7 @@ for r = 1:n_rois
     end
     %------------------Orthogonalise V-------------------------------------
     COV = [];
-    if firstmean % as done in CONN: first extract the mean signal (mS), then compute PCA over data ortogonalised to mS
+    if firstmean && dime(r) > 0 % as done in CONN: first extract the mean signal (mS), then compute PCA over data ortogonalised to mS. 
         mS = mean(V,2);
         COV = [COV,mS];
     end
