@@ -4713,7 +4713,7 @@ function censoring_initialization(g,j,k)
 global opt
 % FD is computed on cut data (in case of volume selector). The censoring
 % file has the lenght of cut data (both in opt and in 1D file)
-tmask = er_censoring_mask(opt.QC.FD{g,j,k},opt.censoring.value,opt.censoring.pre_TR,opt.censoring.post_TR);
+tmask = er_censoring_mask(opt.QC.FD{g,j,k},opt.censoring.value,'preTR',opt.censoring.pre_TR,'postTR',opt.censoring.post_TR,'verbose',0);
 % save info and vector in opt:
 opt.censoring.censor{g,j,k} = tmask;
 n_cen = sum(not(tmask));
@@ -4721,7 +4721,7 @@ opt.censoring.censor_number{g,j}(k,1) = n_cen;
 % save on .1D for 3dTproject
 cen_name = ['_censoring_',opt.AUX.output_name{g,j,k},'_censor.1D'];
 opt.censoring.censor1D{g,j,k} = [opt.folders.preprocessing,'/',cen_name];
-dlmwrite(cen_name,tmask);
+dlmwrite(cen_name,tmask');
 %[~,~] = system(['1dcat _temp.txt > ',cen_name]);
 %[~,~] = system('rm _temp.txt');
 return
