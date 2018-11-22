@@ -294,7 +294,8 @@ global roi2atlas_atlas_roi_struct roi2atlas_roi_check_input
 error =0;
 
 roi2atlas_atlas_roi_struct(1).private_name = ['Juelich-maxprob-thr',num2str(thr),'-',resolution,'.nii.gz'];
-roi2atlas_atlas_roi_struct(2).private_name = ['HarvardOxford-cortl-maxprob-thr',num2str(thr),'-',resolution,'.nii.gz'];
+%roi2atlas_atlas_roi_struct(2).private_name = ['HarvardOxford-cortl-maxprob-thr',num2str(thr),'-',resolution,'.nii.gz'];
+roi2atlas_atlas_roi_struct(2).private_name = ['HarvardOxford-cort-maxprob-thr',num2str(thr),'-',resolution,'.nii.gz'];
 roi2atlas_atlas_roi_struct(3).private_name = ['HarvardOxford-sub-maxprob-thr',num2str(thr),'-',resolution,'.nii.gz '];
 roi2atlas_atlas_roi_struct(4).private_name = ['JHU-ICBM-labels-',resolution,'.nii.gz'];
 roi2atlas_atlas_roi_struct(5).private_name = ['JHU-ICBM-tracts-maxprob-thr',num2str(thr),'-',resolution,'.nii.gz'];
@@ -315,7 +316,8 @@ roi2atlas_atlas_roi_struct(8).name = 'Cerebellar Atlas in MNI152 after FNIRT';
 %roi2atlas_atlas_roi_struct(9).name = 'Talairach Daemon Atlas';
 
 roi2atlas_atlas_roi_struct(1).xml_name = 'Juelich.xml';
-roi2atlas_atlas_roi_struct(2).xml_name = 'HarvardOxford-Cortical-Lateralized.xml';
+%roi2atlas_atlas_roi_struct(2).xml_name = 'HarvardOxford-Cortical-Lateralized.xml';
+roi2atlas_atlas_roi_struct(2).xml_name = 'HarvardOxford-Cortical.xml';
 roi2atlas_atlas_roi_struct(3).xml_name = 'HarvardOxford-Subcortical.xml';
 roi2atlas_atlas_roi_struct(4).xml_name = 'JHU-labels.xml';
 roi2atlas_atlas_roi_struct(5).xml_name = 'JHU-tracts.xml';
