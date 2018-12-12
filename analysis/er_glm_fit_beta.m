@@ -149,7 +149,7 @@ end
 
 if PartialReg
     %parital regression is only ynan = skip
-    fprintf(['\nPartialReg mode on. Regressing out indeces:\n ',num2str(C),'\n'])
+    fprintf(['\nPartialReg mode on. Regressing out indices:\n ',num2str(C),'\n'])
     remove_ynan  = 0;
 else
     %check for NaNs in Y
@@ -215,14 +215,14 @@ else  %remove yNaNs
     Ynan.index{2} = find( (Ynan.n > (rang+1)) & NaNindex);   %NaN index & valid (enough dof)
     
     % initialize to NaN
-    Ynan.B       = nan(rang,size(Y,2));
+    B            = nan(rang,size(Y,2));  %not in ynan semplify the output
     Ynan.sigma2  = nan(1,size(Y,2));
     Ynan.notNaNx = nan(n,length(Ynan.index{2})); %this variable is needed for index{2} ie., when there are NaNs
 
-    [Ynan.B(:,Ynan.index{1}),Ynan.sigma2(1,Ynan.index{1}),~] = do_fit_remove_ynan(Y(:,Ynan.index{1}),X,rang,zscore_flag);
+    [B(:,Ynan.index{1}),Ynan.sigma2(1,Ynan.index{1}),~] = do_fit_remove_ynan(Y(:,Ynan.index{1}),X,rang,zscore_flag);
     
     for l = 1:length(Ynan.index{2})
-       [Ynan.B(:,Ynan.index{2}(l)),Ynan.sigma2(1,Ynan.index{2}(l)),Ynan.notNaNx(:,l)] = do_fit_remove_ynan(Y(:,Ynan.index{2}(l)),X,rang,zscore_flag); 
+       [B(:,Ynan.index{2}(l)),Ynan.sigma2(1,Ynan.index{2}(l)),Ynan.notNaNx(:,l)] = do_fit_remove_ynan(Y(:,Ynan.index{2}(l)),X,rang,zscore_flag); 
     end
     RES = [];
     Ynan.notNaNx = logical(Ynan.notNaNx);
@@ -233,8 +233,20 @@ end
 if ~PermMode
     STATS.model.X = X;
     STATS.model.C = C;   %in case of PartialReg C is not modified
-    if exist('R2','var');   STATS.model.R2    = R2;     end;   %R2 is not available in ynan remove mode.
-    if exist('R2adj','var');STATS.model.R2adj = R2adj;  end;
+    if exist('R2','var') %R2 is not available in ynan remove mode.
+        if n_dimension > 2
+            STATS.model.R2  = reshape(R2,[siz(2:end)]);
+        else
+            STATS.model.R2    = R2;
+        end
+    end
+    if exist('R2adj','var')
+        if n_dimension > 2
+            STATS.model.R2adj  = reshape(R2adj,[siz(2:end)]);
+        else
+            STATS.model.R2adj = R2adj;
+        end
+    end
     STATS.model.constant = constant;
     STATS.model.ynan = ynan;
     STATS.model.zscore = zscore_flag;
@@ -268,7 +280,7 @@ if ~isempty(C) && ~PartialReg
             T = CB./sqrt( repmat(sigma2,[C_number,1]) .* diag((C*inv(X'*X)*C')) );
         end
     else
-        [CB,T] = t_remove_ynan(Ynan,X,C,C_number,r2t,zscore_flag);
+        [CB,T] = t_remove_ynan(Ynan,B,X,C,C_number,r2t,zscore_flag);
     end
     %------------------------------------------------------------
 
@@ -288,7 +300,6 @@ if ~isempty(C) && ~PartialReg
             end
         else
             P = p_remove_ynan(T,Ynan,rang,tail,zscore_flag);
-            B = Ynan.B;
         end
         if fdr || showplot
             Pfdr = nan(size(P));
@@ -395,16 +406,16 @@ sigma2 = sum(RES.^2,1)/(size(Y,1)-rang);
 return
 end
 
-function [CB,T] = t_remove_ynan(Ynan,X,C,C_number,r2t,zscore_flag)
+function [CB,T] = t_remove_ynan(Ynan,B,X,C,C_number,r2t,zscore_flag)
 
-T  = nan(C_number,size(Ynan.B,2));
-CB = nan(C_number,size(Ynan.B,2));
+T  = nan(C_number,size(B,2));
+CB = nan(C_number,size(B,2));
 
 if C_number == 1 && zscore_flag && r2t   %case Pearson (T not from model)
-    T = Ynan.B .* sqrt((Ynan.n-2) ./ (1 - Ynan.B.^2)); 
-    CB= Ynan.B;
+    T = B .* sqrt((Ynan.n-2) ./ (1 - B.^2)); 
+    CB= B;
 else
-    CB(:,Ynan.index{1}) = C*Ynan.B(:,Ynan.index{1});
+    CB(:,Ynan.index{1}) = C*B(:,Ynan.index{1});
     %in case of z-score convertion, X needs to be converted
     if zscore_flag; Xtmp = zscore(X); else Xtmp = X; end
     T (:,Ynan.index{1}) = CB(:,Ynan.index{1})./sqrt( repmat(Ynan.sigma2(1,Ynan.index{1}),[C_number,1]) .* diag((C*inv(Xtmp'*Xtmp)*C')) );
@@ -412,7 +423,7 @@ else
         %in case of z-score convertion, X needs to be converted
         Xtmp = X(Ynan.notNaNx(:,l),:);
         if zscore_flag;  Xtmp = zscore(X); end 
-        CB(:,Ynan.index{2}(l)) = C*Ynan.B(:,Ynan.index{2}(l));
+        CB(:,Ynan.index{2}(l)) = C*B(:,Ynan.index{2}(l));
         T (:,Ynan.index{2}(l)) = CB(:,Ynan.index{2}(l))./sqrt( repmat(Ynan.sigma2(1,Ynan.index{2}(l)),[C_number,1]) .* diag((C*inv(Xtmp'*Xtmp)*C')));
     end
 end

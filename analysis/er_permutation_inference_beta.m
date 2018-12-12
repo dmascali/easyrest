@@ -116,7 +116,7 @@ constant = char2logical(constant);
 siz = size(Y);
 n = siz(1);
 
-if constant && not(strcmpi(testype,'onesample') || zscore) 
+if constant && not(strcmpi(testype,'onesample') || char2logical(zscore_flag)) 
     X = [X,ones(n,1)];
 end
     

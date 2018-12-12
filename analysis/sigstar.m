@@ -251,7 +251,7 @@ function H=makeSignificanceBar(x,y,p)
 
 
 if flag == 0
-    H(1)=plot(x(:),y,'-k','LineWidth',1.5,'Tag','sigstar_bar');
+    H(1)=plot(x(:),y,'-k','LineWidth',1,'Tag','sigstar_bar');
 elseif flag == 1
     H(1)=plot(x(:),y,'LineStyle','none');       % modify by DM
 end

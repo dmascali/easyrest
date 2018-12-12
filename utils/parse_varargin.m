@@ -14,7 +14,7 @@ function varargout = parse_varargin(params,defparams,legalvalues,var_arg,char2lo
 %NB: varargout are forced to be LOWERCASE!
 %
 %If CHAR2LOGIC is provided (and ~= 0), the function performs automatic convertion of 
-% chars to logical in case of: 'on',true','go' -> 1; 'off','false','stop' -> 0.
+% chars to logical in case of: 'on','go' -> 1; 'off','stop' -> 0.
 %
 %Usage example:
 %
@@ -45,8 +45,8 @@ if nargin < 5
     char2logic = 0;
 else
     if char2logic  % Automatic convertion of the following strings to logical values
-        char2logical_true  = {'on','true','go'}; %these values will be converted to logical 1
-        char2logical_false = {'off','false','stop'}; %these values will be converted to logical 0
+        char2logical_true  = {'on','go'}; %these values will be converted to logical 1
+        char2logical_false = {'off','stop'}; %these values will be converted to logical 0
         tobeconverted = [char2logical_true,char2logical_false];
     end
 end

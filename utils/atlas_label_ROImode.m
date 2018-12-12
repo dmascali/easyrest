@@ -21,6 +21,9 @@ function labels = atlas_label_ROImode(atlas,mni2atlas_selector,varargin)
 %   Version 1.0
 %   Copyright (C) 2018   danielemascali@gmail.com
 
+% TODO: instead of extracting the first not empty label, compare more
+% atlases and pick the greatest. 
+
 if nargin == 0
     help atlas_label_ROImode
     return

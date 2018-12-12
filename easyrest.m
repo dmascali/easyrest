@@ -346,7 +346,7 @@ if ~opt.AUX.preprocessing_done && (opt.rp_regression.do || opt.censoring.do)
     for g =1:opt.group_number
         str = [str,sprintf('Group%d',g)];
         for j=1:opt.session_number
-            str = [str,sprintf('\tSess%d: %.3f+/-%.3f\t',j,mean_(g,j),std_(g,j))];
+            str = [str,sprintf('Sess%d: %.3f+/-%.3f\t',j,mean_(g,j),std_(g,j))];
         end
         str = [str,sprintf('\n')];
     end
@@ -391,7 +391,7 @@ if ~opt.AUX.preprocessing_done && opt.censoring.do
     end
     % PRINT STATS 
     str = [];mean_ = []; std_ = [];
-    str = [str,sprintf('\n-> Summary of censored time points:')];
+    str = [str,sprintf('\n-> Summary of censored time points (FD thr = %.2f mm):',opt.censoring.value)];
     str = [str,sprintf('\nGroup\tSession\t\tValues\n')];
     for g =1:opt.group_number
         str = [str,sprintf('Group%d',g)];
@@ -409,7 +409,7 @@ if ~opt.AUX.preprocessing_done && opt.censoring.do
     for g =1:opt.group_number
         str = [str,sprintf('Group%d\t',g)];
         for j=1:opt.session_number
-            str = [str,sprintf('sess%d: %.2f+/-%.2f\t',j,mean_(g,j),std_(g,j))];
+            str = [str,sprintf('Sess%d: %.2f+/-%.2f\t',j,mean_(g,j),std_(g,j))];
         end
         str = [str,sprintf('\n')];
     end
