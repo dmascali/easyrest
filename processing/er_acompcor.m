@@ -1,4 +1,4 @@
-function X = er_acompcor(data,rois,dime,confounds,varargin)
+function X = er_acompcor(data,rois,dime,varargin)
 %ER_ACOMPCOR(DATA,ROIS,DIME) extracts signals from DATA using ROIS as masks.
 % -DIME specifies the number/type of signals. If DIME = 0 only the mean
 %  signal will be extracted, if DIME > 0 the first n=DIME principal components
@@ -8,12 +8,12 @@ function X = er_acompcor(data,rois,dime,confounds,varargin)
 % -ROIS is a cell array containg either matrices or paths to nifti files.
 %  ROIS must be binary.
 %
-%ER_ACOMPCOR(DATA,ROIS,DIME,CONFOUNDS) If a matrix of confound variables is
-% provided, these will be regressed out of data before extracting any signal. 
-%
 %Additional options can be specified using the following parameters (each 
 % parameter must be followed by its value ie,'param1',value1,'param2',value2):
 %
+%   'confounds' :   If a matrix of confound variables is provided, these will 
+%                   be regressed out of data before extracting any signal. 
+%                   {default = []}
 %   'firstmean' :   ['on'/'off'] If 'on', the first extracted component is 
 %                   the mean signal, then PCA is performed on data 
 %                   ortogonalised to the mean signal {default='off'}
@@ -45,14 +45,15 @@ if nargin < 3
 end
 
 %--------------VARARGIN----------------------
-params  =  {'firstmean','derivatives','squares','TvarNormalise','DataCleared'};
-defParms = {      'off',           [],       [],          'off',      'false'};
-legalValues{1} = {'on','off'};
-legalValues{2} = [];
+params  =  {'confounds','firstmean','derivatives','squares','TvarNormalise','DataCleared'};
+defParms = {         [],      'off',           [],       [],          'off',      'false'};
+legalValues{1} = [];
+legalValues{2} = {'on','off'};
 legalValues{3} = [];
-legalValues{4} = {'on','off'};
-legalValues{5} = {'true','false'};
-[firstmean,deri,squares,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin,1);
+legalValues{4} = [];
+legalValues{5} = {'on','off'};
+legalValues{6} = {'true','false'};
+[confounds,firstmean,deri,squares,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin,1);
 % --------------------------------------------
 
 if ~iscell(rois)
@@ -136,7 +137,7 @@ for r = 1:n_rois
     %--------------------------------
     %check if ROI is binary
     un = unique(ROI(:));
-    if length(un) > 2 || ~isequal(uint8(un),[0;1])
+    if length(un) > 2 || sum(un) > 1
         error(sprintf('ROI %d is not binary',r));
     end
     %--------------------------------
@@ -174,36 +175,11 @@ for r = 1:n_rois
             %tvariance normalization
             V = bsxfun(@rdivide,V,std(V));
         end
-        if 0 %same results   verified (2018)
-            [~,U,~] = pca(V);
-            comp = U(:,1:opt.aCompCor.ROI(r).dime);
+        [U,P] = svd(V);
+        if firstmean %add the mean signal and remove one dimension
+            comp = [mS,U(:,1:dime(r)-1)*diag(diag(P(1:dime(r)-1,1:dime(r)-1)))];
         else
-            %-------A bit of math--------------------------------------------------------------------------------
-            % The principal components T of a matrix A are obtained by projecting A on the space
-            % of the eigenvectors of the convariance matrix A'A, that we call V (also known as principal axes).
-            % T = AV
-            % A can be written is SVD as
-            % A = USV' where U are eigenvectors of AA'
-            %                V are eigenvectors of A'A
-            % Thus,
-            % T = USV'V = US
-            % If we take the svd
-            % A'A = VS^2V'
-            % AA' = US^2U
-            % Thus, these are equivalent:
-            %          [U1,U2] = svd((V*V'));
-            %          comp1 = [mS,U1(:,1:4)*diag(sqrt(diag(U2(1:4,1:4))))];
-            %          [U1,U2] = svd(V);
-            %          comp2 = [mS,U1(:,1:4)*diag(diag(U2(1:4,1:4)))];
-            %          [coeff score latent] = pca(V);
-            %          comp2 = [mS,score(:,1:4)];
-            %----------------------------------------------------------------------------------------------------
-            [U,P] = svd(V);
-            if firstmean %add the mean signal and remove one dimension
-                comp = [mS,U(:,1:dime(r)-1)*diag(diag(P(1:dime(r)-1,1:dime(r)-1)))];
-            else
-                comp = U(:,1:dime(r))*diag(diag(P(1:dime(r),1:dime(r))));
-            end
+            comp = U(:,1:dime(r))*diag(diag(P(1:dime(r),1:dime(r))));
         end
     else  %if dime == 0 simply compute the straight average
         comp = mean(V,2);
@@ -222,12 +198,12 @@ for r = 1:n_rois
     if squares(r) > 0
         Xtmp = [Xtmp,Xtmp.^2];
     end
-    % variance normalise the extracted componets
-    Xtmp = Xtmp./std(Xtmp,0,1);
-    
+   
     X = [X,Xtmp];
 end
-    
+
+% variance normalise the extracted components
+X = X./std(X,0,1);
 
 return
 end
