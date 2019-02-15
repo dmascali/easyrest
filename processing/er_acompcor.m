@@ -137,9 +137,10 @@ for r = 1:n_rois
     %--------------------------------
     %check if ROI is binary
     un = unique(ROI(:));
-    if length(un) > 2 || sum(un) > 1
+    if length(un) > 2 || sum(uint8(un)) > 1
         error(sprintf('ROI %d is not binary',r));
     end
+    ROI = uint8(ROI);
     %--------------------------------
     % data extraction
     indx = find(ROI);
