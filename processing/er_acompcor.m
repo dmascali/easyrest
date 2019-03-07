@@ -11,10 +11,15 @@ function X = er_acompcor(data,rois,dime,varargin)
 %Additional options can be specified using the following parameters (each 
 % parameter must be followed by its value ie,'param1',value1,'param2',value2):
 %
-%   'confounds' :   If a matrix of confound variables is provided, these will 
+%   'confounds'   : If a matrix of confound variables is provided, these will 
 %                   be regressed out of data before extracting any signal. 
 %                   {default = []}
-%   'firstmean' :   ['on'/'off'] If 'on', the first extracted component is 
+%   'filter'      : As above, but regress out undesired frequencies using a
+%                   a basis of sine and cosine. Use a 3 element vector,
+%                   i.e., ...'filter',[TR,F1,F2] . Where TR is the
+%                   repetition time, F1 and F2 are the edge frequencies of
+%                   bandpass filter. 
+%   'firstmean'   : ['on'/'off'] If 'on', the first extracted component is 
 %                   the mean signal, then PCA is performed on data 
 %                   ortogonalised to the mean signal {default='off'}
 %   'derivatives' : is a vector of roi length that specifies the degree of
@@ -45,15 +50,16 @@ if nargin < 3
 end
 
 %--------------VARARGIN----------------------
-params  =  {'confounds','firstmean','derivatives','squares','TvarNormalise','DataCleared'};
-defParms = {         [],      'off',           [],       [],          'off',      'false'};
+params  =  {'confounds','firstmean','derivatives','squares','TvarNormalise','DataCleared','filter'};
+defParms = {         [],      'off',           [],       [],          'off',      'false',      []};
 legalValues{1} = [];
 legalValues{2} = {'on','off'};
 legalValues{3} = [];
 legalValues{4} = [];
 legalValues{5} = {'on','off'};
 legalValues{6} = {'true','false'};
-[confounds,firstmean,deri,squares,TvarNormalise,DataCleared] = parse_varargin(params,defParms,legalValues,varargin,1);
+legalValues{7} = [];
+[confounds,firstmean,deri,squares,TvarNormalise,DataCleared,freq] = parse_varargin(params,defParms,legalValues,varargin,1);
 % --------------------------------------------
 
 if ~iscell(rois)
@@ -166,8 +172,13 @@ for r = 1:n_rois
     if ~isempty(confounds)  % extract PCA over data already ortogonalised to confounds.
         COV = [COV,confounds];
     end
-    if ~isempty(COV)
+    if ~isempty(confounds)
         COV = detrend(COV);
+    end
+    if ~isempty(freq)  %to avoid detrending the frequency basis, although the detrend terms could be put in the model 
+        COV = [COV,BandPassOrt(size(V,1),freq(1),freq(2),freq(3),1)];
+    end
+    if ~isempty(COV)
         V = V-COV*(COV\V);
     end
     %----------------------------------------------------------------------
