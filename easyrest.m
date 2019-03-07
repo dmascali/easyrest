@@ -81,7 +81,7 @@ ER.others.filter_band = [0.008, 0.09];
 ER.others.psc = 0;                             % 1/0 [0]; 1 psc; 0 raw ; DON'T USE IF YOUR DATA IS ALREADY MEAN CENTERED (AT ZERO)
 ER.others.psc_save = 0;                        % 1/0 [0]; save psc epi (Usually, you don't need them..so save disk space) 
 ER.others.tredrsfc_extraoption = '';           % See AFNI 3dRSFC (or 3dTproject if censoring is on) for extra options (-blur is not permitted any more [replaced by new smoothing function])
-
+ER.others.restore_mean = 0;                    % 1/0 [0]; Restore the mean image.  Normally, you don't want this option on. 
 
 ER.others.rp_regression.do = 1;                 % 1/0; 1: for rp regression. NB: No need to have zero-centerd rp, indeed, the mean is removed by (3dRSFC (w0 freq) or 3dTproject). It MIGHT make sense to have no-centered no-detrended rp for denoising analyisis
 ER.others.rp_regression.derivate = 1;           % compute first derivates, if not already present
@@ -1613,13 +1613,7 @@ elseif ot.bm_method == 1
     error('The brain mask method 1 requires GM, WM and CSF maps');
 end
 
-if opt.rp_regression.do % DA requires rp regression|| ot.measure.DA
-    if ~isfield(ot,'rp_type')
-        error('The field ER.others.rp_type must be specified ({''FSL'',''SPM'',''AFNI'',''HCP''}).');
-    end 
-    opt.AUX.rp_tye = ot.rp_type;
-    rp_define_ordering_and_unit;
-end
+
 % check for denoising analysis (requires rp and wc1)
 if ot.measure.DA && ~opt.rp_regression.do
     warning off backtrace
@@ -1638,6 +1632,7 @@ if ~isfield(ot,'tredrsfc_extraoption');  ot.tredrsfc_extraoption = '';end
 if ~isfield(ot,'psc_save');         ot.psc_save = 0;end
 if ~isfield(ot,'psc');              ot.psc = 0;end
 if ~isfield(ot,'volume_selector');  ot.volume_selector = [];end
+if ~isfield(ot,'restore_mean');     ot.restore_mean = 0;end
 %if ~isfield(ot,'N');                ot.N = [];end
 if ~isfield(ot.bm,'group');         ot.bm.group = [];end
 if ~isfield(ot.bm,'modality');      ot.bm.modality = 'hard';end
@@ -1673,6 +1668,15 @@ if ~isfield(ot, 'special_smoothing_order'); ot.special_smoothing_order = 1; end
 if ~isfield(ot, 'special_smoothing_FWHM');  ot.special_smoothing_FWHM  = []; end
 if ~isfield(ot,'BlurToFWHM_extraoption');   ot.BlurToFWHM_extraoption = ''; end;
 opt.censoring = ot.censoring;
+opt.restore_mean = ot.restore_mean;
+
+if opt.rp_regression.do || opt.censoring.do % DA requires rp regression|| ot.measure.DA
+    if ~isfield(ot,'rp_type')
+        error('The field ER.others.rp_type must be specified ({''FSL'',''SPM'',''AFNI'',''HCP''}).');
+    end 
+    opt.AUX.rp_tye = ot.rp_type;
+    rp_define_ordering_and_unit;
+end
 
 % CENSORING modality
 if opt.censoring.do
@@ -2714,7 +2718,7 @@ elseif flag_bmask == 4 %brain mask from mask_file
         spm_write_vol(hdr_output,group_bm);
 
         bmask_string{1,1} = ['-mask ',dest_dir,'/group_bm.nii'];
-        bmask_path{1.1} = [dest_dir,'/group_bm.nii'];
+        bmask_path{1,1} = [dest_dir,'/group_bm.nii'];
         bmask_img{1,1} = group_bm;
     else  % NEW: USE SS mask as brainmask, NO GROUP MASK. NOTE: I could have use directly DATA.MASKS. But in this way masks remain even if data delated.
         for g = 1:opt.group_number
@@ -3785,7 +3789,14 @@ else
     if str2num(string) ~= opt.tr{g,j}
         [status,string] = system(['3drefit -TR ',num2str(opt.tr{g,j}),' ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:))]);control(status,string);
     end
+    if opt.restore_mean
+        [status,string] = system(['3dTstat -mean -prefix _mean.nii ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:))]);control(status,string);
+    end        
     [status,string] = system(['3dRSFC -dt ',num2str(opt.tr{g,j}),rp_str,opt.tredrsfc_extraoption,rsfa_str,' ',bmask_string,' -prefix ',opt.AUX.output_name{g,j,k},' ',num2str(opt.filter_band(1)),' ',num2str(opt.filter_band(2)),' ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:)),opt.AUX.v_s_str{g,j}]);control(status,string);
+    if opt.restore_mean
+        [status,string] = system(['3dcalc -a _mean.nii -b ',opt.AUX.output_name{g,j,k},'_LFF.nii -c ',bmask_path,' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -overwrite -expr ''(a+b)*c''']);control(status,string);
+        [status,string] = system('rm _mean.nii');control(status,string);
+    end    
 end
 return
 end
@@ -3853,8 +3864,15 @@ else
     if str2num(string) ~= opt.tr{g,j}
         [status,string] = system(['3drefit -TR ',num2str(opt.tr{g,j}),' ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:))]);control(status,string);
     end
+    if opt.restore_mean
+        [status,string] = system(['3dTstat -mean -prefix _mean.nii ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:))]);control(status,string);
+    end        
     [status,string] = system(['3dTproject -input ',c_b(opt.DATA.FUNCTIONALS{g,j}(k,:)),opt.AUX.v_s_str{g,j},' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -passband ',num2str(opt.filter_band(1)),' ',num2str(opt.filter_band(2)),' -dt ',num2str(opt.tr{g,j}),rp_str,opt.tredrsfc_extraoption,' ',bmask_string,' -polort 2 -censor ',opt.censoring.censor1D{g,j,k},' -cenmode ',opt.censoring.mode]);control(status,string);
     opt.censoring.DOF{g,j}(k,1) = parse_3dTproject(string);
+    if opt.restore_mean
+        [status,string] = system(['3dcalc -a _mean.nii -b ',opt.AUX.output_name{g,j,k},'_LFF.nii -c ',bmask_path,' -prefix ',opt.AUX.output_name{g,j,k},'_LFF.nii -overwrite -expr ''(a+b)*c''']);control(status,string);
+        [status,string] = system('rm _mean.nii');control(status,string);
+    end    
 end
 return
 end
@@ -4515,7 +4533,7 @@ for r = 1:opt.aCompCor.masknumb
     for n1=1:length(idxt), if (sum(sum(sum(roi(idxx(idxt(n1))+(-ERODE:ERODE),idxy(idxt(n1))+(-ERODE:ERODE),idxz(idxt(n1))+(-ERODE:ERODE))<THR,3),2),1))>1, idxt(n1)=0; end; end
     idxt=idxt(idxt>0);
     idx1=idx1(idxt);
-    if length(idx1) < DIME + 2; error(sprintf('After erosion, too few suprathreshold voxels in ROI file %s.',[opt.AUX.group_names_prefix{g},opt.AUX.subject_names{g,k},'_',output_str]));end        
+    if length(idx1) < DIME + 5; error(sprintf('After erosion, too few suprathreshold voxels in ROI file %s.',[opt.AUX.group_names_prefix{g},opt.AUX.subject_names{g,k},'_',output_str]));end        
     roi=zeros(size(roi));roi(idx1)=1;
     if 1
         %check mask. Can be left 0
