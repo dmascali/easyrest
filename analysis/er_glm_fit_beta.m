@@ -357,7 +357,7 @@ if ~isempty(C) && ~PartialReg
             STATS.P  = P;
             if zStat_flag;  STATS.Z = Z;      end
             if remove_ynan; STATS.N = Ynan.n; else STATS.N = n; end
-            if fdr;         STATS.Pfdr = Pfdr;end
+            if fdr || showplot; STATS.Pfdr = Pfdr;end
         end
         if showplot
             Y = reshape(Y,[n, siz(2:end)]);
