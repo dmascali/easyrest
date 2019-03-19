@@ -22,7 +22,7 @@ function varargout = er_UI_GLMplot(varargin)
 
 % Edit the above text to modify the response to help er_UI_GLMplot
 
-% Last Modified by GUIDE v2.5 12-Apr-2018 00:28:15
+% Last Modified by GUIDE v2.5 18-Mar-2019 22:47:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,15 +78,33 @@ handles.Pmode = 1;
 %set slider and edit box for single variable plot
 maxSlX = size(handles.Y,2)-1;
 maxSlY = size(handles.Y,3)-1;
-set(handles.SlX,'min',0,'max',maxSlX,'sliderstep',[1/maxSlX 10/maxSlX]);
-set(handles.SlY,'min',0,'max',maxSlY,'sliderstep',[1/maxSlY 10/maxSlY]);
+if maxSlX > 0
+    set(handles.SlX,'min',0,'max',maxSlX,'sliderstep',[1/maxSlX 10/maxSlX]);
+else
+    set(handles.SlX,'min',0,'max',maxSlX,'sliderstep',[0 1]);
+end
+if maxSlY > 0
+    set(handles.SlY,'min',0,'max',maxSlY,'sliderstep',[1/maxSlY 10/maxSlY]);
+else
+    set(handles.SlY,'min',0,'max',maxSlY,'sliderstep',[0 1]);
+end
 
 
-set(handles.edCoX,'String','1');
-set(handles.edCoY,'String','1');
-SelY.row = 1;
-SelY.col = 1;
-plot_contrast_fit(handles,1,1);
+
+if not(isfield(SelY,'row')) || (isfield(SelY,'row') && SelY.row > (maxSlX+1) )
+    SelY.row = 1;
+    set(handles.edCoX,'String','1');
+else
+    set(handles.edCoX,'String',num2str(SelY.row));
+end
+if not(isfield(SelY,'col')) || (isfield(SelY,'col') && SelY.col > (maxSlY+1) )
+    SelY.col = 1;
+    set(handles.edCoY,'String','1');
+else
+    set(handles.edCoY,'String',num2str(SelY.col));
+end
+plot_contrast_fit(handles,SelY.row,SelY.col);
+
 
     % 
 % set(handles.SlY,'min',0);
@@ -587,4 +605,29 @@ function SlY_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+function edit10_Callback(hObject, eventdata, handles)
+% hObject    handle to edit10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+axes(handles.axes3);
+lim = caxis;
+caxis([lim(1), str2double(get(hObject,'String'))]);
+
+% Hints: get(hObject,'String') returns contents of edit10 as text
+%        str2double(get(hObject,'String')) returns contents of edit10 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit10_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
