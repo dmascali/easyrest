@@ -3,39 +3,49 @@ function X = er_acompcor(data,rois,dime,varargin)
 % -DIME specifies the number/type of signals. If DIME = 0 only the mean
 %  signal will be extracted, if DIME > 0 the first n=DIME principal components
 %  will be extracted (following the aCompCor approach).
-% -DATA can be a matrix or a path to a nifti file, if DATA is a matrix, the 
+% -DATA can be a matrix or the path to a nifti file, if DATA is a matrix, the 
 %  last dimension must be time. 
 % -ROIS is a cell array containg either matrices or paths to nifti files.
 %  ROIS must be binary.
 %
+% NB1: Data is detrended (costant and linear trends are removed) before any
+%      computation
+% NB2: All extracted signals are normalized to unit variance.  
+%
 %Additional options can be specified using the following parameters (each 
 % parameter must be followed by its value ie,'param1',value1,'param2',value2):
 %
-%   'confounds'   : If a matrix of confound variables is provided, these will 
-%                   be regressed out of data before extracting any signal. 
-%                   {default = []}
+%   'confounds'   : If a matrix of confound variables (time x variables) is 
+%                   provided, DATA will be orthogonalized with respect to 
+%                   the confounds before extracting any signal. In this
+%                   way, an fMRI denoising model containing both the
+%                   confounds and the aCompCor signals will be more
+%                   predictive. {default = []}
 %   'filter'      : As above, but regress out undesired frequencies using a
-%                   a basis of sine and cosine. Use a 3 element vector,
-%                   i.e., ...'filter',[TR,F1,F2] . Where TR is the
-%                   repetition time, F1 and F2 are the edge frequencies of
-%                   bandpass filter. 
+%                   a basis of sines and cosines. Use a 3 element vector,
+%                   i.e., ...'filter',[TR,F1,F2]. Where TR is the
+%                   repetition time, F1 and F2 are the frequency edges of
+%                   the bandpass filter. {default= []}
 %   'firstmean'   : ['on'/'off'] If 'on', the first extracted component is 
 %                   the mean signal, then PCA is performed on data 
-%                   ortogonalised to the mean signal {default='off'}
+%                   ortogonalised with respect to the mean signal.
+%                   {default='off'}
 %   'derivatives' : is a vector of roi length that specifies the degree of
-%                   derivatives to be computed on the extracted singals
+%                   derivatives to be computed on the extracted signals
 %                   {default=[],which is the same as zeros(1,length(rois))
 %   'squares'     : is a vector of roi length that specifies (flag 1/0)
 %                   whether to compute the squares of the extracted signals
 %                   (as well as the squares of derivatives, if present)
 %                   {default=[],which is the same as zeros(1,length(rois))
 %   'TvarNormalise':['on'/'off'], if set to 'on' the data is normalised by
-%                   its temporal variance {default='off'}
+%                   its temporal variance before performing PCA {default='off'}
 %   'DataCleared' : ['true'/'false'] if 'true' the function avoids to seek
 %                   for NaNs or voxels with zero signals (to save time)
 %                   {default='false'}
 %
-% see aCompCor paper for details: neuroimage 37(2007) 90-101
+%References:
+% Behzadi et al. (2007) Neuroimage 37, 90-101   
+% Whitfield-Gabrieli and Nieto-Castanon (2012) Brain Connect. 2(3), 154-41
 %__________________________________________________________________________
 % First version: 2016        at CMRR
 % Last update  : August 2018 at MARBILab
@@ -88,7 +98,7 @@ else
 end
 
 %--------------------------------------------------------------------------
-%------LOADING DATA  and reshape-------------------------------------------
+%------LOADING DATA and reshape--------------------------------------------
 if ischar(data)  %in case data is a path to a nifti file
     data = spm_read_vols(spm_vol(data));
     s = size(data);
@@ -165,11 +175,11 @@ for r = 1:n_rois
     end
     %------------------Orthogonalise V-------------------------------------
     COV = [];
-    if firstmean && dime(r) > 0 % as done in CONN: first extract the mean signal (mS), then compute PCA over data ortogonalised to mS. 
+    if firstmean && dime(r) > 0 % as done in CONN: first extract the mean signal (mS), then compute PCA over data ortogonalised with respect to mS. 
         mS = mean(V,2);
         COV = [COV,mS];
     end
-    if ~isempty(confounds)  % extract PCA over data already ortogonalised to confounds.
+    if ~isempty(confounds)  % extract PCA over data already ortogonalised with respect to confounds.
         COV = [COV,confounds];
     end
     if ~isempty(confounds)

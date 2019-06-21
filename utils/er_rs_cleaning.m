@@ -20,21 +20,23 @@ function [res,des_info,X] = er_rs_cleaning(Y,concat_index,TR,polort,pass_band,or
 % optional arguments:
 % 'cenmode' can be 'KILL' or 'ZERO' (def: 'ZERO') (see 3dTproject for
 % info).
+% removePol0: [0/1; def = 0] in case you want pol > 0 but don't want the constant term
+% this option remove Pol 0 (ie., the costant). NB: dangerous option. 
 
 
 
 
-params  = {'cenmode','ortdemean'}; %NB: In case of multiple sessions with one separate set of ort for each
-                                        %session, deaming all X or separately each ort session is the same. 
-                                        % So, ortdemean should be always
-                                        % set to 1
-defparms = {'zero', 1};
+params  = {'cenmode','ortdemean','removePol0'}; %NB: In case of multiple sessions with one separate set of ort for each
+                                                    %session, deaming all X or separately each ort session is the same. 
+
+defparms = {'zero', 1 ,0};
 legalvalues{1} = {'zero','kill'};
 legalvalues{2} = [0 1];
-[cenmode,ortdemean] = parse_varargin(params,defparms,legalvalues,varargin);
+legalvalues{3} = [0 1];
+[cenmode,ortdemean,removePol0] = parse_varargin(params,defparms,legalvalues,varargin);
 
 
-if polort == -1
+if polort == -1 || removePol0
     warning('The intercept is not modeled. Be sure Y has been demeaned');
 end
 
@@ -61,7 +63,7 @@ end
 X_dim = zeros(run_number,1);
 for r = 1:run_number
     %add Legendre pol
-    X_diag{r} = er_leg_pol(N(r),polort,0);
+    X_diag{r} = er_leg_pol(N(r),polort,removePol0);
     if ~isempty(pass_band)
         % sines and cosines to apply a band_pass filter
         X_diag{r} = [X_diag{r},BandPassOrt(N(r),TR,pass_band(1),pass_band(2),1)];
@@ -182,7 +184,7 @@ elseif order == 1
     if ~exclude_costant
         X = [ones(N,1), linspace(-1,1,N)'];    
     else
-        X = [linspace(-1,1,N)'];    
+        X = linspace(-1,1,N)';    
     end
 elseif order == 2
     if ~exclude_costant

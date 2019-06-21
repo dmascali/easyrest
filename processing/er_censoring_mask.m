@@ -1,11 +1,11 @@
 function [tmask,n_cens] = er_censoring_mask(vect,thr,varargin)
-%given a vector VECT the script creates a temporal (binary) mask which is 
+%Given a vector VECT the function creates a binary temporal mask which is 
 %   0 where VECT  > THR  (to be censored)
 %   1 where VECT <= THR  (to be kept)
 % this is the same convention of ANFI 3dTproject (censored points are 
 % indicated with 0s)
 % If an array of THR is provided, multiple masks will be created.
-
+%
 %Additional options can be specified using the following parameters (each 
 % parameter must be followed by its value ie,'param1',value1,'param2',value2)
 %
@@ -26,9 +26,9 @@ function [tmask,n_cens] = er_censoring_mask(vect,thr,varargin)
 %
 % In the standard mode only, you can specify the following parameters:
 %   - 'preTR' = [M (integer value)],
-%      to censor M previous TR volumes {default = []}
+%      for censoring M previous TR volumes {default = []}
 %   - 'postTR' = [M (integer value)],
-%      to censor M post TR volumes {default = []}
+%      for censoring M post TR volumes {default = []}
 %
 % Use 'verbose' property (1/0) to show output messages {defalut = 1}
 %__________________________________________________________________________
@@ -57,7 +57,7 @@ end
 
 N_masks = length(thr);
 if strcmpi(Mode,'standard'); Units = 'vector unit';end
-if verbose; fprintf('\nCreating %d temporal mask(s) in modality ''%s'' (units: ''%s'')...',N_masks,Mode,upper(Units)); end; 
+if verbose; fprintf('\nCreating %d temporal mask(s) in modality ''%s'' (units: ''%s'')...',N_masks,Mode,upper(Units)); end 
 N = length(vect);
 tmask = zeros(N_masks,N);
 
@@ -75,7 +75,7 @@ switch Mode
                 end                 
             case {'percent'}
                 if ~isempty(find(thr> 100 | thr < 0,1))
-                    error('In the current modality THR represents the percent of volumes to be randomly censored, thus, thr must be <= 100.');
+                    error('In the current modality THR represents the percentage of volumes to be randomly censored, thus, thr must be <= 100.');
                 end 
                 % convert thr from percent to N
                 thr = round(thr.*N/100);
@@ -104,11 +104,10 @@ end
 
 n_cens = sum(tmask,2)';
 
-% from logic to double
-% plus invert 0s with 1s (to follow ANFI's convention)
+% from logic to double plus invert 0s with 1s (to follow ANFI's convention)
 tmask = uint8(~tmask);
 
-if verbose; fprintf('done!\n'); end;
+if verbose; fprintf('done!\n'); end
 
 return
 end
