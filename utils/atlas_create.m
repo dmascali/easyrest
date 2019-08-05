@@ -61,11 +61,19 @@ for l = 1:size(roi_mni,1)
     else
          [~,~]= system(['3dcalc -a ',template,' -LPI -expr ''step(',num2str(radius*radius),'-(x',c{1},')*(x',c{1},')-(y',c{2},')*(y',c{2},')-(z',c{3},')*(z',c{3},'))'' -prefix ',out,' -datum short']);
     end
-        if l == 1
+    if l == 1
         hdr = spm_vol(out);
         img = spm_read_vols(hdr);
+        if sum(img(:)) == 0
+            system('rm _temp_*.nii');
+            error('Empty roi at the first iteration');
+        end
     else
         tmp = spm_read_vols(spm_vol(out));
+        if sum(tmp(:)) == 0
+            system('rm _temp_*.nii');
+            error(['Empty roi at interation number: ',num2str(l)]);
+        end
         img = img + l*tmp;
     end
     if max(img(:)) > l
