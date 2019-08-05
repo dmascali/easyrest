@@ -72,16 +72,17 @@ ER.an.measure.selector = {'StV'};   % Select measure to analyize (only if ER.an.
 ER.an.seed.all = 1;
 ER.an.seed.selector = {'PCC'};
 
-%contrast thresholds (only two different thresholds can be used). they are
-%applied to all defined contrasts
+%contrast thresholds they are applied to all defined contrasts
 ER.an.model.contrast(1).titlestr = 'All contrasts, p<0.001 k=10';
 ER.an.model.contrast(1).threshdesc = 'none';    %multiple comparison correction
 ER.an.model.contrast(1).thresh = 0.001; % p-values 
 ER.an.model.contrast(1).extent = 10;    % minum volume
+
 ER.an.model.contrast(2).titlestr = 'All contrasts, p<0.05 FWE, k=0';
 ER.an.model.contrast(2).threshdesc = 'FWE';    %multiple comparison correction
 ER.an.model.contrast(2).thresh = 0.05; % p-values 
 ER.an.model.contrast(2).extent = 0;    % minum volume
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -611,18 +612,17 @@ matlabbatch{3}.spm.stats.con.consess{2}.tcon.convec = [-1 1];
 matlabbatch{3}.spm.stats.con.consess{2}.tcon.sessrep = 'none';
 matlabbatch{3}.spm.stats.con.delete = 0;
 matlabbatch{4}.spm.stats.results.spmmat = {[opt.an.current_model_dir,'/SPM.mat']};
-matlabbatch{4}.spm.stats.results.conspec(1).titlestr = opt.an.model.contrast(1).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(1).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(1).threshdesc = opt.an.model.contrast(1).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(1).thresh = opt.an.model.contrast(1).thresh;
-matlabbatch{4}.spm.stats.results.conspec(1).extent = opt.an.model.contrast(1).extent;
-matlabbatch{4}.spm.stats.results.conspec(1).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
-matlabbatch{4}.spm.stats.results.conspec(2).titlestr = opt.an.model.contrast(2).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(2).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(2).threshdesc = opt.an.model.contrast(2).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(2).thresh = opt.an.model.contrast(2).thresh;
-matlabbatch{4}.spm.stats.results.conspec(2).extent = opt.an.model.contrast(2).extent;
-matlabbatch{4}.spm.stats.results.conspec(2).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+
+%add contrast
+conspec = opt.an.model.contrast;
+%add missing info to contrast
+for l = 1:length(conspec)
+   conspec(l).contrasts = Inf;
+   conspec(l).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+end
+
+matlabbatch{4}.spm.stats.results.conspec = conspec;
+
 matlabbatch{4}.spm.stats.results.units = 1;
 matlabbatch{4}.spm.stats.results.print = true;
 
