@@ -323,7 +323,7 @@ cov_selctor = opt.an.model.one_sample_ttest.model(m).covariate;
 cov = struct('c', {}, 'cname', {}, 'iCFI', {}, 'iCC', {});
 if ~isempty(cov_selctor)
     for ll = 1:length(cov_selctor)
-        if length(opt.an.cov(cov_selctor(ll)).c) ~= total_rows
+        if length(opt.an.cov(cov_selctor(ll)).c) ~= length(data)
             error(['Covariate ',num2str(cov_selctor(ll)),' in OSTT model ',num2str(m),' has a wrong number of elements']);
         end
         cov(ll).c = opt.an.cov(cov_selctor(ll)).c;
@@ -514,18 +514,15 @@ else
 end
 matlabbatch{3}.spm.stats.con.delete = 0;
 matlabbatch{4}.spm.stats.results.spmmat = {[opt.an.current_model_dir,'/SPM.mat']};
-matlabbatch{4}.spm.stats.results.conspec(1).titlestr = opt.an.model.contrast(1).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(1).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(1).threshdesc = opt.an.model.contrast(1).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(1).thresh = opt.an.model.contrast(1).thresh;
-matlabbatch{4}.spm.stats.results.conspec(1).extent = opt.an.model.contrast(1).extent;
-matlabbatch{4}.spm.stats.results.conspec(1).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
-matlabbatch{4}.spm.stats.results.conspec(2).titlestr = opt.an.model.contrast(2).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(2).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(2).threshdesc = opt.an.model.contrast(2).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(2).thresh = opt.an.model.contrast(2).thresh;
-matlabbatch{4}.spm.stats.results.conspec(2).extent = opt.an.model.contrast(2).extent;
-matlabbatch{4}.spm.stats.results.conspec(2).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+%add contrast
+conspec = opt.an.model.contrast;
+%add missing info to contrast
+for l = 1:length(conspec)
+   conspec(l).contrasts = Inf;
+   conspec(l).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+end
+
+matlabbatch{4}.spm.stats.results.conspec = conspec;
 matlabbatch{4}.spm.stats.results.units = 1;
 matlabbatch{4}.spm.stats.results.print = true;
 
@@ -564,18 +561,16 @@ matlabbatch{3}.spm.stats.con.consess{2}.tcon.convec = [-1 1];
 matlabbatch{3}.spm.stats.con.consess{2}.tcon.sessrep = 'none';
 matlabbatch{3}.spm.stats.con.delete = 0;
 matlabbatch{4}.spm.stats.results.spmmat = {[opt.an.current_model_dir,'/SPM.mat']};
-matlabbatch{4}.spm.stats.results.conspec(1).titlestr = opt.an.model.contrast(1).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(1).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(1).threshdesc = opt.an.model.contrast(1).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(1).thresh = opt.an.model.contrast(1).thresh;
-matlabbatch{4}.spm.stats.results.conspec(1).extent = opt.an.model.contrast(1).extent;
-matlabbatch{4}.spm.stats.results.conspec(1).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
-matlabbatch{4}.spm.stats.results.conspec(2).titlestr = opt.an.model.contrast(2).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(2).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(2).threshdesc = opt.an.model.contrast(2).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(2).thresh = opt.an.model.contrast(2).thresh;
-matlabbatch{4}.spm.stats.results.conspec(2).extent = opt.an.model.contrast(2).extent;
-matlabbatch{4}.spm.stats.results.conspec(2).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+
+%add contrast
+conspec = opt.an.model.contrast;
+%add missing info to contrast
+for l = 1:length(conspec)
+   conspec(l).contrasts = Inf;
+   conspec(l).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+end
+
+matlabbatch{4}.spm.stats.results.conspec = conspec;
 matlabbatch{4}.spm.stats.results.units = 1;
 matlabbatch{4}.spm.stats.results.print = true;
 
@@ -773,18 +768,14 @@ if length(anv.icell) == 4
 end
 matlabbatch{3}.spm.stats.con.delete = 0;
 matlabbatch{4}.spm.stats.results.spmmat = {[opt.an.current_model_dir,'/SPM.mat']};
-matlabbatch{4}.spm.stats.results.conspec(1).titlestr = opt.an.model.contrast(1).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(1).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(1).threshdesc = opt.an.model.contrast(1).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(1).thresh = opt.an.model.contrast(1).thresh;
-matlabbatch{4}.spm.stats.results.conspec(1).extent = opt.an.model.contrast(1).extent;
-matlabbatch{4}.spm.stats.results.conspec(1).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
-matlabbatch{4}.spm.stats.results.conspec(2).titlestr = opt.an.model.contrast(2).titlestr;
-matlabbatch{4}.spm.stats.results.conspec(2).contrasts = Inf;
-matlabbatch{4}.spm.stats.results.conspec(2).threshdesc = opt.an.model.contrast(2).threshdesc;
-matlabbatch{4}.spm.stats.results.conspec(2).thresh = opt.an.model.contrast(2).thresh;
-matlabbatch{4}.spm.stats.results.conspec(2).extent = opt.an.model.contrast(2).extent;
-matlabbatch{4}.spm.stats.results.conspec(2).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+%add contrast
+conspec = opt.an.model.contrast;
+%add missing info to contrast
+for l = 1:length(conspec)
+   conspec(l).contrasts = Inf;
+   conspec(l).mask = struct('contrasts', {}, 'thresh', {}, 'mtype', {});
+end
+matlabbatch{4}.spm.stats.results.conspec = conspec;
 matlabbatch{4}.spm.stats.results.units = 1;
 matlabbatch{4}.spm.stats.results.print = true;
 
