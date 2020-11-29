@@ -1,4 +1,6 @@
 function easyrest_rois_extract(ER_)
+%EASYREST_ROIS_EXTRACT extracts measure values in specified ROIs and store 
+%data in a matlab file to be open with easyrest_rois_plot. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % EDITABLE FIELDS  
@@ -6,19 +8,18 @@ function easyrest_rois_extract(ER_)
 ER.project = '';            % the complete path of the project's mat file (ER_project_name.mat)
 ER.output_name = '';        % output name for the extracted data
 
-% ER.roi_classifier{1} = {'PCC','MPFC','Broca'};      %only nii are allowed. DO NOT PUT the extension. %comment for no classification
-% ER.roi_classifier{2} = {'ACC','PCC'};
-% ER.roi_classifier{3} = {'V1'};
-
+% eclude specific measures to save time: 
 ER.psd_extract = 1;
 ER.psdw_extract = 1;
 ER.psdm_extract = 1;
-
 ER.gFC_HIST_extract = 1;
-
 ER.coh_ma_extract = 1;
 
-ER.check_update = 1;        % 1/0; automatic check for update. DO NOT DISABLE (usefull only in the case the repository is down OR you are using NOHUP)         
+
+% ROI class (experimental)
+% ER.roi_classifier{1} = {'PCC','MPFC','Broca'};      %only nii are allowed. DO NOT PUT the extension. %comment for no classification
+% ER.roi_classifier{2} = {'ACC','PCC'};
+% ER.roi_classifier{3} = {'V1'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -45,13 +46,13 @@ load (ER.project)
 
 %%---------------------------------
 % Check for update
-if ER.check_update
-    if exist('check_updates')~=2
-        error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
-    end
-    exit = check_updates(version);
-    if exit;return;end
-end
+% if ER.check_update
+%     if exist('check_updates')~=2
+%         error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
+%     end
+%     exit = check_updates(version);
+%     if exit;return;end
+% end
 %%---------------------------------
 measure = measure_definition;
 indx = arrayfun( @(s) isempty(s.do),measure);       %mi assicuro che non ci siano campi empty

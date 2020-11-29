@@ -1,15 +1,16 @@
 function easyrest_rois_plot(ER_)
+%EASYREST_ROIS_PLOT plots measure values previosuly extracted with easyrest_rois_extract 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % EDITABLE FIELDS  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ER.roi_file = '/data/danielem/visanet/ER_analysis/ER_an_ROIs.mat';
-
-%ER.roi_file = './ER_an_ROIs.mat';
+ER.roi_file = '/data/danielem/visanet/ER_analysis/ER_an_ROIs.mat';  %specify the full path
+% of the extracted rois values (from easyrest_rois_extract)
 
 %%%%%%%% MEASURE SELECTOR %%%%%%%%%%%%%
-%comment unwanted measure
+% comment unwanted measure
+
 %-------AMPLITUDE----------
 % raw
 ER.MEASURE{1} = 'ALFF';
@@ -120,8 +121,10 @@ ER.bar_plot_options.cova = [];      % A covariate matrix for bar plot only (rows
                                     % The regression is made across samples
                                     % NaN are NOT allowed in this matrix
                                     
+% DEFINE sample for comparisons:
+                                    
 ER.sample(1).selector = [1,2,1;1,1,2];     %i: group, j = session, k = roi_class. Add raw for merging different sample. Different roi_class must have the same number of elements (ie., rois) to be compared
-ER.sample(1).name = 'C';
+ER.sample(1).name = 'C';             % Assign a name to the sample
 ER.sample(1).session_average = 1;   % 1/0; if 1 different sessions will be averaged. if 0 simple merging.
 ER.sample(1).corr(1).name = '';     % corr(m) computes m correlations with between measures and corr(m).vect. Give a name for each corr(m) in corr(m).name
 ER.sample(1).corr(1).vect = [];
@@ -129,12 +132,15 @@ ER.sample(1).corr(1).cova = [];     % only for PARTIAL CORRELATION (also for ROI
 ER.sample(1).corr(2).name = '';
 ER.sample(1).corr(2).vect = [];
 ER.sample(1).corr(2).cova = [];
-ER.sample(1).good_subjs = [];               % A vector of ones and zeros for selecting good subjects only. Put it empty or comment for no selection.
+ER.sample(1).good_subjs = [];        % A vector of ones and zeros for selecting good subjects only. Put it empty or comment for no selection.
 ER.sample(1).RtoR_cova = [];        % covariates only for ROI to ROI plots (one-sample and two-sample, for correlation use corr(l).cova)
 
 ER.sample(2).selector = [1,2,2;1,1,1];
 ER.sample(2).name = 'NC';
 
+
+
+% Other examples:
 
 % ER.sample(1).selector = [1,1,1;1,1,2];     %i: group, j = session, k = roi_class. Add raw for merging different sample. Different roi_class must have the same number of elements (ie., rois) to be compared
 % ER.sample(1).name = 'ATT LEFT';
@@ -166,13 +172,13 @@ welcome_screen(version)
 
 %%---------------------------------
 % Check for update
-if flag_check_update
-    if exist('check_updates')~=2
-        error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
-    end
-    exit = check_updates(version);
-    if exit;return;end
-end
+% if flag_check_update
+%     if exist('check_updates')~=2
+%         error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
+%     end
+%     exit = check_updates(version);
+%     if exit;return;end
+% end
 %%---------------------------------
 
 if nargin

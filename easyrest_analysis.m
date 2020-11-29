@@ -1,4 +1,11 @@
 function easyrest_analysis(ER_)
+% EASYREST_ANALYSIS runs voxel-wise statistical tests (t-tests, anova...)
+% on variable extracted form easyrest. 
+%
+%   All options must be put in the editable fields of the script.
+%   We advice to copy the editable fields below to another matlab file and add 
+%   "easyrest(ER)" as last command.
+%
 % cov is now implemented only in OSTT TSTT and TSTTp
 % subj selector is implemented in OSTT, TSTT and TSTTp
 % extra contrasts implemented only in OSTT
@@ -7,14 +14,13 @@ function easyrest_analysis(ER_)
 % EDITABLE FIELDS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ER.project = '/data/danielem/visanet/ER_analysis/ER_analysis.mat';
+% NB: fields are filled with example values. Change them accordingly to your project. 
 
-ER.an.cov(1).name = 'age_all';
-ER.an.cov(1).c = [69;72;59;83;66;71;70;65;58;62;75;68;74;71;70;70;70;74;73;74;76;55;78;80;68;71;77;70;73;72;62;63;76;81;70;79;88;76;72;76;85;68;76;85;82;57;72;50;50;82;61;73;66;76;54;56;59;59;68;58;67;61;79;73;65;74;61;70;76;69;59;74;67];
-ER.an.cov(2).name = 'sex_all';
-ER.an.cov(2).c = [-1;-1;1;-1;-1;-1;-1;-1;1;-1;-1;-1;-1;-1;-1;-1;-1;1;-1;1;-1;-1;1;1;-1;-1;-1;-1;1;-1;-1;1;-1;-1;-1;-1;-1;1;1;-1;-1;1;-1;1;-1;1;1;1;1;1;1;1;1;1;-1;-1;-1;-1;1;-1;1;-1;1;1;-1;1;-1;-1;1;1;-1;1;1];
+ER.project = '/data/danielem/visanet/ER_analysis/ER_analysis.mat';    % path of project file, mandatory.
 
-ER.an.model.one_sample_ttest.do = 1;
+
+% One sample T-tests. Comment model not required. 
+ER.an.model.one_sample_ttest.do = 1;                        % put to 0 if not requried.
 ER.an.model.one_sample_ttest.model(1).name = 'ADL';
 ER.an.model.one_sample_ttest.model(1).selector = [1,1];                                 % 2D vector: first colum, group selecotr; second colum, session selector. Add extra row to combine group/session         
 ER.an.model.one_sample_ttest.model(1).covariate = [];                                   % Indexs of the covariates you want to include in the model
@@ -22,7 +28,6 @@ ER.an.model.one_sample_ttest.model(1).extra_contrast(1).tcon.name = 'cov1-effect
 ER.an.model.one_sample_ttest.model(1).extra_contrast(1).tcon.convec = [0 1];
 ER.an.model.one_sample_ttest.model(1).no_zero_contrast = 0;                             % if 1, the usual contrast [1 0 ...] (i.e., the group/session contrast) will NOT be calculated. This situation is useful if you are interested only in the covairate effect and not in the beta zero regressor 
 ER.an.model.one_sample_ttest.model(1).subj_selector = [];                               % A vector of ones and zeros for selecting good subjects only
-
 ER.an.model.one_sample_ttest.model(2).name = 'ADNL';
 ER.an.model.one_sample_ttest.model(2).selector = [2,1];
 ER.an.model.one_sample_ttest.model(2).covariate = [];
@@ -33,8 +38,8 @@ ER.an.model.one_sample_ttest.model(4).name = 'AD';
 ER.an.model.one_sample_ttest.model(4).selector = [1,1;2,1];
 ER.an.model.one_sample_ttest.model(4).covariate = [];
 
-
-ER.an.model.two_sample_ttest.do = 1;
+% Two sample T-tests. 
+ER.an.model.two_sample_ttest.do = 1;                        % put to 0 if not requried.
 ER.an.model.two_sample_ttest.model(1).name = 'HS_vs_ADL';
 ER.an.model.two_sample_ttest.model(1).sample1 = [3,1];      % 2D vector: first colum, group selecotr; second colum, session selector. Add extra row to combine group/session        
 ER.an.model.two_sample_ttest.model(1).sample2 = [1,1];      % 2D vector: first colum, group selecotr; second colum, session selector. Add extra row to combine group/session   
@@ -61,7 +66,9 @@ ER.an.model.two_sample_ttest.model(4).sample2 = [1,1;2,1];      % 2D vector: fir
 ER.an.model.two_sample_ttest.model(4).paired = 0;
 ER.an.model.two_sample_ttest.model(4).covariate = [];
 
-ER.an.model.one_way_anova.do = 1;
+
+% ONE-WAY ANOVA.
+ER.an.model.one_way_anova.do = 1;                             % put to 0 if not requried.  
 ER.an.model.one_way_anova.model(1).name = '';
 ER.an.model.one_way_anova.model(1).selector = [1,1;2,1;3,1];  % nx2 matrix. Each row is a group. Columns are group and condition indexes respectively.
 ER.an.model.one_way_anova.model(1).covariate = [];
@@ -83,6 +90,13 @@ ER.an.model.contrast(2).threshdesc = 'FWE';    %multiple comparison correction
 ER.an.model.contrast(2).thresh = 0.05; % p-values 
 ER.an.model.contrast(2).extent = 0;    % minum volume
 
+%Ccovariate structure that applies for all tests. Comment if not reequired
+ER.an.cov(1).name = 'age_all';
+ER.an.cov(1).c = [69;72;59;83;66;71;70;65;58;62;75;68;74;71;70;70;70;74;73;74;76;55;78;80;68;71;77;70;73;72;62;63;76;81;70;79;88;76;72;76;85;68;76;85;82;57;72;50;50;82;61;73;66;76;54;56;59;59;68;58;67;61;79;73;65;74;61;70;76;69;59;74;67];
+ER.an.cov(2).name = 'sex_all';
+ER.an.cov(2).c = [-1;-1;1;-1;-1;-1;-1;-1;1;-1;-1;-1;-1;-1;-1;-1;-1;1;-1;1;-1;-1;1;1;-1;-1;-1;-1;1;-1;-1;1;-1;-1;-1;-1;-1;1;1;-1;-1;1;-1;1;-1;1;1;1;1;1;1;1;1;1;-1;-1;-1;-1;1;-1;1;-1;1;1;-1;1;-1;-1;1;1;-1;1;1];
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,7 +105,7 @@ ER.an.model.contrast(2).extent = 0;    % minum volume
 clearvars -global opt
 global opt
 
-flag_check_update = 1;      % 1/0; automatic check for update. DO NOT DISABLE (usefull only in the case the repository is down)         
+%flag_check_update = 1;      % 1/0; automatic check for update. DO NOT DISABLE (usefull only in the case the repository is down)         
 
 version = version_er;      
 %%---------------------------------
@@ -101,13 +115,13 @@ welcome_screen(version)
 
 %%---------------------------------
 % Check for update
-if flag_check_update
-    if exist('check_updates')~=2
-        error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
-    end
-    exit = check_updates(version);
-    if exit;return;end
-end
+% if flag_check_update
+%     if exist('check_updates')~=2
+%         error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
+%     end
+%     exit = check_updates(version);
+%     if exit;return;end
+% end
 %%---------------------------------
 
 if nargin
