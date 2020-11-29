@@ -45,8 +45,8 @@ if nargin < 5
     char2logic = 0;
 else
     if char2logic  % Automatic convertion of the following strings to logical values
-        char2logical_true  = {'on','go'}; %these values will be converted to logical 1
-        char2logical_false = {'off','stop'}; %these values will be converted to logical 0
+        char2logical_true  = {'on','go','true'}; %these values will be converted to logical 1
+        char2logical_false = {'off','stop','false'}; %these values will be converted to logical 0
         tobeconverted = [char2logical_true,char2logical_false];
     end
 end
