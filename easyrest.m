@@ -11,61 +11,51 @@ function easyrest(ER_)
 %(__\_)(____)(____/ (__)     
 %_______________________________________________________________________
 %
-%   All options must be put in the editable fields of the script.
-%   Alternatively you can pass the ER variable as input, i.e.,
-%   EASYREST(ER).
-%  
 %   EASYREST requires AFNI and SPM.
 %
 %   To install easyrest on your machine add the ER folders in your matlab
 %   path (i.e.: addpath(genpath('/home/user/MATLAB/ER')) )
-%   
-%   An implementation of single subject processing is now available: easyrest_ss.
-%   However, you should use easyrest since all its outputs are fully comparable 
-%   between subjects. Output from eastrest_ss are not optimized for a second 
-%   level analysis.
-
-% daniele.mascali@gmail.com  Developed in 2015
-
-%TODO: 1) To reduce hard disk space requirement save files as nii.gz (afni
-%has this functionality) Problem: SPM can't read nii.gz 
-% 2) Allow the case of non matching sessions (subjects with different
-% number of sessions; see prepare_data function for some extra details).
-% 3) Plotting of RtoR must be runnable even without ER_ROIs file.
-% 4) removes first timepoints from regressors to have them to mach the
-% LFF.nii 
+%  
+%   All options must be put in the editable fields of the script.
+%   We advice to copy the editable fields below to another matlab file and add 
+%   "easyrest(ER)" as last command.
+%  
+% daniele.mascali@gmail.com 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % EDITABLE FIELDS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% NB1: fields are filled with example values. Change them accordingly to your project. 
+% NB2: comment the fileds not required
+
 %---------------------------------------
 % Data definitions
 %---------------------------------------
-    % FOLDER defintions
-ER.folders.data{1} = '/home/mallow/Scrivania/easyrest/DATA/group1';    % index run on groups
+    % FOLDER defintions:
+ER.folders.data{1} = '/home/mallow/Scrivania/easyrest/DATA/group1';    % Data path location. Cell index runs on groups (e.g., patients, controls). Mandatory.
 %ER.folders.data{2} = '/home/mallow/Scrivania/easyrest/DATA/group2';   % comment extra groups
 ER.folders.rois = '/home/mallow/Scrivania/easyrest/rois';              % roi folder for SEED based measures (eg, seed to voxel; only .nii or hdr/img rois are allowed). Mandatory only if seed-based measures are selceted.                                                    
-ER.folders.results = '/data/danielem/visanet';                         % result directory in which the new project will be created
-ER.folders.project = 'analysis';                                       % name of the project 
+ER.folders.results = '/data/danielem/visanet';                         % result directory in which the new project will be created. Mandatory.
+ER.folders.project = 'analysis';                                       % name of the project. Mandatory.
 
-    % Wildcard FILE selector
-%ER.file_str.wc1_file = 'wc1v_*.nii';              % GM tissue probability or binary mask
-%ER.file_str.wc2_file = 'wc2v_*.nii';              % WM tissue probability or binary mask 
-%ER.file_str.wc3_file = 'wc3v_*.nii';              % CSF tissue probability or binary mask 
-ER.file_str.functional_file{1} = 'bw_avg_RS_1.nii'; % index run on sessions/conditions
+    % Wildcard FILE selector:
+ER.file_str.wc1_file = 'wc1v_*.nii';              % GM tissue probability or binary mask
+ER.file_str.wc2_file = 'wc2v_*.nii';              % WM tissue probability or binary mask 
+ER.file_str.wc3_file = 'wc3v_*.nii';              % CSF tissue probability or binary mask 
+ER.file_str.functional_file{1} = 'bw_avg_RS_1.nii'; % index runs on sessions/conditions. Mandatory.
 ER.file_str.functional_file{2} = 'bw_avg_RS_2.nii'; % comment extra sessions/conditions
 
     % RP regression
-ER.file_str.rp_file{1} = 'rp_mean_rs1.txt';        % Wildcard file selector for rp files. Put a cell for each session/condtion rp files (i.e., index run on sessions/conditions).
+ER.file_str.rp_file{1} = 'rp_mean_rs1.txt';        % Wildcard file selector for rp files. Put a cell for each session/condtion rp files (i.e., index runs on sessions/conditions).
 ER.file_str.rp_file{2} = 'rp_mean_rs2.txt';        % comment extra session/condition.
 
     % subjects-,condition-, group-name definition
-ER.file_str.subject_names = 'VA*';                 % Non ?? fondamentale, se non specificato i soggetti vengono nominati con subj_###.
+ER.file_str.subject_names = 'VA*';                 % Name subjects according to their folder's name. If the wildcard is not provided subjects will be named "subj_###".
 ER.file_str.condition_names = {'LEFT','RIGHT'};    % Condition name of each scan (as many as the number of sessions). Mandatory if # scans > 1
-%ER.file_str.group_names = {'AD','HS'};             % group name of data folder (as many as the number of data folders). Mandatory if # data folders > 1. Not applicable for # data folders == 1
+%ER.file_str.group_names = {'AD','HS'};            % group name of data folder (as many as the number of data folders). Mandatory if # data folders > 1. Not applicable for # data folders == 1
 ER.file_str.condition_assignment{1} = [1 2; 1 2; 2 1; 1 2; 2 1; 1 2; 2 1; 1 2; 2 1; 2 1];         % If scan names are in sequential order but conditions are randomized use this entry to assign to each subject the right conditon. (rows are subjects, columns are sessions; use integer to indicate the condition_names; e.g.: [1,2;2,1;...]
-%ER.file_str.condition_assignment{2} = []; 
+%ER.file_str.condition_assignment{2} = [];          % comment extra sessions/conditions
 
 %---------------------------------------
 % preprocessing options
@@ -74,10 +64,10 @@ ER.file_str.condition_assignment{1} = [1 2; 1 2; 2 1; 1 2; 2 1; 1 2; 2 1; 1 2; 2
 ER.others.volume_selector = [];           % Optional, put the starting and ending volumes to be considered for the analysis. 
                                           % If volume_selector differs among sessions or groups use volume_selector{group,session} = [N1 N2].
                                           % Index starts from 0. Eg, first 20 volumes; [0 19];
-                                          % ATTENTION: Issues using data with different lengths: 1)COH: the # of averaged segments will be different 2) PSDM: this will not work. 3) PSDW: the # of averaged segments will be different
-                                          % ATTENTION2: Do not use the volume selector if there are different volume numbers in the same group and session (solution: precut your data)
+                                          % NB1: Issues using data with different lengths: 1)COH: the # of averaged segments will be different
+                                          % NB2: Do not use the volume selector if there are different volume numbers in the same group and session (solution: precut your data)
 ER.others.tr = 3.1;                       % Repetion time of EPI. If TR differs among sessions or groups use tr{group,session} = [tr].
-ER.others.filter_band = [0.008, 0.09];
+ER.others.filter_band = [0.008, 0.09];    % frequency range for bandpass filtering. Use [0 99999] to do an "allpass" filter.
 ER.others.psc = 0;                             % 1/0 [0]; 1 psc; 0 raw ; DON'T USE IF YOUR DATA IS ALREADY MEAN CENTERED (AT ZERO)
 ER.others.psc_save = 0;                        % 1/0 [0]; save psc epi (Usually, you don't need them..so save disk space) 
 ER.others.tredrsfc_extraoption = '';           % See AFNI 3dRSFC (or 3dTproject if censoring is on) for extra options (-blur is not permitted any more [replaced by new smoothing function])
@@ -90,7 +80,8 @@ ER.others.rp_type = 'FSL';                      % {'FSL','SPM','AFNI','HCP'}. Sp
 ER.others.aCompCor.do = 1;                      % aCompCor method for noise mitigation.It requieres tissue probability maps
                                                 % NOTE: aCompCor will perform better on UNsmoothed data. So pass data not smoothed and
                                                 % smooth them afterwards
- %Optimized aCompCor parameters, you should not change them
+                                                
+ %Optimized aCompCor parameters:
 ER.others.aCompCor.rpOrtogonalize = 1;          % [def = 1] extract PCA/mean over data already ortogonalized to rp.
                                                 %           In this way the model is maximally predictive.                                                
 ER.others.aCompCor.asCONN = 0;                  % [def = 0] CONN extracts PCA over mean regressed data, and the first component is equal to straight average. 
@@ -172,7 +163,7 @@ ER.others.measure.REHO = 0;           % 1) REHO: Regional Homogeneity [ref: Regi
 ER.others.measure.gFC  = 0;           % 2) gFC: Global Functional Connectivity (this can take a VERY LONG TIME)
 ER.others.measure.CoE  = 0;           % 3) CoE: Correlation Entropy. Computes entropy of the global correlation histogram (requires gFC)   
 ER.others.measure.DeC  = 0;           % 4) DeC: Degree Connectivity (graph theory). Using each voxel as a node an adjacency matrix (undirected and unweighted) is difened. The deegre is defined as the sum of the thresholded adjacency matrix. One or more thresholds can be defined in ER.others.DeC.Thrs
-ER.others.measure.SpE  = 0;           % 5) SpE: Spectral Entropy  
+ER.others.measure.SpE  = 0;           % 5) SpE: Spectral Entropy (experimentally)
         % seed-based measure 
 ER.others.measure.StoV = 0;          % 6) SEED-to-VOXEL connectivity (fastconn). YOU MUST PUT THE ROIS IN folder.rois (only .nii or .hdr/img are allowed)
 ER.others.measure.DEL  = 0;           % 7) DEL: 3dDelay (a seed-based measure). YOU MUST PUT THE ROIS IN folder.rois (only .nii or .hdr/img are allowed)  
@@ -222,9 +213,8 @@ ER.others.special_smoothing_FWHM = [];  % FWHM for map smoothing in case 1. Empt
 % Advanced options
 %--------------------------------------- 
 ER.others.The_IKnowWhatIamDoing_Condition = 0; % 1/0; if 1, there is no pause for checking data arrangement (generally, deprecated ...
-                                               % unless you want to use nohup (e.g.: nohup matlab -nojvm -r name_of_your_script_without_extension -logfile name_of_logfile.out </dev/null & )
-ER.others.update = 1;                          % 1/0; automatic check for update. DO NOT DISABLE                                             
-ER.others.sendstatus = '';                     % Specify an e-mail address where to send the exit status
+                                               % unless you want to use nohup (e.g.: nohup matlab -nojvm -r name_of_your_script_without_extension -logfile name_of_logfile.out </dev/null & )                                   
+ER.others.sendstatus = '';                     % Specify an e-mail address where to send the exit status. It requires MatlabMailFeedback: https://github.com/dmascali/MatlabMailFeedback
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -241,7 +231,11 @@ end
 
 % sendstatus if required
 if isfield(ER.others,'sendstatus') && ~isempty(ER.others.sendstatus)
-    sendstatus(ER.others.sendstatus)
+    if exist('sendstatus') ~= 2
+        warning('Sendstatus was not found in your Matlab path. No email will be sent when fhinishing the processing');
+    else
+        sendstatus(ER.others.sendstatus)
+    end
 end
 
 clearvars -global opt
@@ -261,13 +255,13 @@ welcome_screen(version)
 
 %%---------------------------------
 % Check for update
-if ER.others.update && ~ER.others.The_IKnowWhatIamDoing_Condition 
-    if exist('check_updates')~=2
-        error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
-    end
-    exit = check_updates(version);
-    if exit;return;end
-end
+% if ER.others.update && ~ER.others.The_IKnowWhatIamDoing_Condition 
+%     if exist('check_updates')~=2
+%         error('Improper ER installation. Add ER to your matlab path with all subfolders, i.e.: addpath(genpath(''/home/user/MATLAB/ER''))');
+%     end
+%     exit = check_updates(version);
+%     if exit;return;end
+% end
 %%---------------------------------
 
 %%---------------------------------
