@@ -3909,7 +3909,7 @@ else
 %             error('ER.others.gFC.thr must be < 1 [default is 0.25].');
 %         end
 %     end
-    if ~isfield(ot.gFC,'Vthr'); 
+    if ~isfield(ot.gFC,'Vthr')
         ot.gFC.Vthr = [0.25 0.5 0.05];
     else
         if numel(ot.gFC.Vthr) ~= 3
@@ -3954,7 +3954,7 @@ else
     end
 end
 opt.AUX.DeC.Thrs = ot.DeC.Thrs;
-opt.AUX.DeC.num_thr = floor((opt.AUX.DeC.Thrs(2) - opt.AUX.DeC.Thrs(1))./opt.AUX.DeC.Thrs(3) + 1);
+opt.AUX.DeC.num_thr = length(opt.AUX.DeC.Thrs(1):opt.AUX.DeC.Thrs(3):opt.AUX.DeC.Thrs(2));
 N = 200;        %IMPORTANT: change this accordingly to gFC HIST output.
 D = 2/N;
 rr = -1:D:(1-D); % building correlation index. 

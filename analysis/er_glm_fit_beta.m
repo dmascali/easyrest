@@ -219,12 +219,19 @@ else  %remove yNaNs
     Ynan.sigma2  = nan(1,size(Y,2));
     Ynan.notNaNx = nan(n,length(Ynan.index{2})); %this variable is needed for index{2} ie., when there are NaNs
 
-    [B(:,Ynan.index{1}),Ynan.sigma2(1,Ynan.index{1}),~] = do_fit_remove_ynan(Y(:,Ynan.index{1}),X,rang,zscore_flag);
+    [B(:,Ynan.index{1}),Ynan.sigma2(1,Ynan.index{1}),~,res_tmp] = do_fit_remove_ynan(Y(:,Ynan.index{1}),X,rang,zscore_flag);
     
     for l = 1:length(Ynan.index{2})
-       [B(:,Ynan.index{2}(l)),Ynan.sigma2(1,Ynan.index{2}(l)),Ynan.notNaNx(:,l)] = do_fit_remove_ynan(Y(:,Ynan.index{2}(l)),X,rang,zscore_flag); 
+       [B(:,Ynan.index{2}(l)),Ynan.sigma2(1,Ynan.index{2}(l)),Ynan.notNaNx(:,l),res_tmp] = do_fit_remove_ynan(Y(:,Ynan.index{2}(l)),X,rang,zscore_flag); 
     end
-    RES = [];
+    %NB: in general we cannot output residual in this modality because each
+    % responding variable may have different NaNs. So, we can proceed if we
+    % have just one responding variable
+    if size(Y,2) == 1
+        RES = res_tmp;
+    else
+        RES = [];
+    end
     Ynan.notNaNx = logical(Ynan.notNaNx);
 end
 
@@ -383,7 +390,7 @@ end
 return
 end
 
-function [B,sigma2,notNaNx] = do_fit_remove_ynan(Y,X,rang,zscore_flag)
+function [B,sigma2,notNaNx,RES] = do_fit_remove_ynan(Y,X,rang,zscore_flag)
 
 %check for NaNs in Y
 nanindex = logical(sum(isnan(Y),2));
