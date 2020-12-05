@@ -1,9 +1,6 @@
-function [opzione]= scelta_yn (stringa,default)
-%scelta_yn.m Sceglie tra y e n
-%Versione 1.2
-%Federico Giove, ultima modifica 30/09/2002
-%Versione 1.3 : ora se si inserisce una stringa con length > 1 non
-% da più errore. daniele mascali 18/02/2015
+function [opzione]= choose_yn (stringa,default)
+%choose yes or no
+%Federico Giove
 
 disp(' ')
 opzione=' ';

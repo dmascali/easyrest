@@ -48,8 +48,8 @@ for r = 1:length(list_measures)
     if exist(pathname_SM,'dir')
         temp_list = dir([pathname_SM,'/*.nii']);
         if ~isempty(temp_list)
-            scelta = scelta_yn('Destination directory not empty. Next step is to remove these data, shall I continue?','y');
-            if scelta == 'n'
+            choose = choose_yn('Destination directory not empty. Next step is to remove these data, shall I continue?','y');
+            if choose == 'n'
                 return
             else
                 system(['rm ',pathname_SM,'/*.nii']);

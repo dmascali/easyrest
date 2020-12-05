@@ -45,7 +45,7 @@ for l = 1:total
 end
 fprintf('\nThese files are going to be compressed/decompressed.');
 if ~script_mode
-    [opzione] = scelta_yn ('Press a key to continue (type ''n'' to exit)','y');
+    [opzione] = choose_yn ('Press a key to continue (type ''n'' to exit)','y');
     if opzione == 'n'
         fprintf('Aborted. Bye.\n');
         return
@@ -100,12 +100,9 @@ str(str==' ') = '';
 return
 end
 
-function [opzione]= scelta_yn (stringa,default)
-%scelta_yn.m Sceglie tra y e n
-%Versione 1.2
-%Federico Giove, ultima modifica 30/09/2002
-%Versione 1.3 : ora se si inserisce una stringa con length > 1 non
-% da più errore. daniele mascali 18/02/2015
+function [opzione]= choose_yn (stringa,default)
+%choose yes or no
+%Federico Giove
 
 disp(' ')
 opzione=' ';
@@ -127,4 +124,5 @@ if opzione=='N'
 end
 return
 end
+  
   

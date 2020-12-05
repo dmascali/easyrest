@@ -1991,8 +1991,8 @@ if ot.The_IKnowWhatIamDoing_Condition
     pause(0.5);
 else
     fprintf('\nPlease, carefully check if data are correctly ordered!');
-    [opzione] = scelta_yn ('Ready to start (type ''n'' to exit)','y');
-    if opzione == 'n'
+    [choose] = choose_yn ('Ready to start (type ''n'' to exit)','y');
+    if choose == 'n'
         exit = 1;
         return
     end
